@@ -78,6 +78,7 @@ class PlayerViewModel(
             if (trackIndex >= 0) {
                 playbackController.seekToTrack(trackIndex, progress.lastPositionMs)
             }
+            playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
         }
         playbackController.play()
     }
@@ -127,7 +128,7 @@ class PlayerViewModel(
     }
 
     fun setSpeed(speed: Float) {
-        playbackController.setSpeed(speed)
+        playbackController.setSpeed(speed.coerceIn(0.5f, 2.0f))
     }
 
     private fun saveProgressInternal(forceCompleted: Boolean = false) {
@@ -156,6 +157,7 @@ class PlayerViewModel(
                     completedTracksMs = completedTracksMs,
                     lastUpdated = System.currentTimeMillis(),
                     isCompleted = isCompleted,
+                    playbackSpeed = state.playbackSpeed,
                 )
             )
         }

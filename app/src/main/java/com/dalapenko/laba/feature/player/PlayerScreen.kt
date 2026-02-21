@@ -1,7 +1,6 @@
 package com.dalapenko.laba.feature.player
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,7 +24,6 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -229,9 +226,9 @@ fun PlayerScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                SpeedSelector(
+                SpeedControl(
                     currentSpeed = playerState.playbackSpeed,
-                    onSpeedSelected = { viewModel.setSpeed(it) },
+                    onSpeedChanged = { viewModel.setSpeed(it) },
                 )
             }
         }
@@ -280,20 +277,43 @@ private fun CoverArt(
 }
 
 @Composable
-private fun SpeedSelector(
+private fun SpeedControl(
     currentSpeed: Float,
-    onSpeedSelected: (Float) -> Unit,
+    onSpeedChanged: (Float) -> Unit,
 ) {
-    val speeds = listOf(0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        speeds.forEach { speed ->
-            FilterChip(
-                selected = currentSpeed == speed,
-                onClick = { onSpeedSelected(speed) },
-                label = { Text("${speed}x") },
+        Text(
+            text = String.format(Locale.ENGLISH, "%.2f×", currentSpeed),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Slider(
+            value = currentSpeed,
+            onValueChange = { raw ->
+                val snapped = (raw * 20).toInt() / 20f
+                onSpeedChanged(snapped.coerceIn(0.5f, 2.0f))
+            },
+            valueRange = 0.5f..2.0f,
+            steps = 29,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = "Playback speed" },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "0.5×",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "2.0×",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

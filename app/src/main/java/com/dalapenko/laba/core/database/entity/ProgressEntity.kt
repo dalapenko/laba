@@ -13,4 +13,5 @@ data class ProgressEntity(
     val completedTracksMs: Long = 0L,
     val lastUpdated: Long,
     val isCompleted: Boolean = false,
+    val playbackSpeed: Float = 1f,
 )

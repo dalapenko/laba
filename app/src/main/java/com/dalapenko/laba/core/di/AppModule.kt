@@ -15,6 +15,7 @@ val appModule = module {
             DATABASE_NAME,
         )
             .fallbackToDestructiveMigration(false)
+            .addMigrations(AppDatabase.MIGRATION_1_2)
             .build()
     }
 
