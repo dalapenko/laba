@@ -6,4 +6,4 @@ import kotlinx.serialization.Serializable
 object Library
 
 @Serializable
-data class Player(val bookId: Long)
+data class Player(val bookId: Long, val autoPlay: Boolean = true)

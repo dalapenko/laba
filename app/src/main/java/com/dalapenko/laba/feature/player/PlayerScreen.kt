@@ -55,8 +55,9 @@ import java.util.Locale
 @Composable
 fun PlayerScreen(
     bookId: Long,
+    autoPlay: Boolean = true,
     onBack: () -> Unit,
-    viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId) },
+    viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()

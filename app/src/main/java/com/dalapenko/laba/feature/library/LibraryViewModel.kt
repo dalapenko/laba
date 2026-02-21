@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dalapenko.laba.core.media.PlaybackController
+import com.dalapenko.laba.core.media.PlaylistItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +15,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class PlaybackStatus(val activeBookId: Long?, val isPlaying: Boolean)
+data class PlaybackStatus(
+    val activeBookId: Long?,
+    val isPlaying: Boolean,
+    val isMediaLoaded: Boolean,
+)
 
 class LibraryViewModel(
     private val repository: BookRepository,
@@ -21,12 +27,20 @@ class LibraryViewModel(
     private val playbackController: PlaybackController,
 ) : ViewModel() {
 
+    private val _lastPlayedBookId = MutableStateFlow<Long?>(null)
+
     val playbackStatus: StateFlow<PlaybackStatus> = combine(
         playbackController.currentBookId,
         playbackController.playerState,
-    ) { bookId, state ->
-        PlaybackStatus(activeBookId = bookId, isPlaying = state.isPlaying)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackStatus(null, false))
+        _lastPlayedBookId,
+    ) { mediaBookId, state, lastPlayed ->
+        val isLoaded = mediaBookId != null
+        PlaybackStatus(
+            activeBookId = mediaBookId ?: lastPlayed,
+            isPlaying = isLoaded && state.isPlaying,
+            isMediaLoaded = isLoaded,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackStatus(null, false, false))
 
     val books: StateFlow<List<BookWithProgress>> = repository.observeAllBooksWithProgress()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -42,6 +56,7 @@ class LibraryViewModel(
     val scanResult: StateFlow<ScanResult?> = _scanResult.asStateFlow()
 
     init {
+        viewModelScope.launch { _lastPlayedBookId.value = repository.getLastPlayedBookId() }
         // Silently fill in covers for books added before cover extraction existed
         viewModelScope.launch { resyncMissingCovers() }
     }
@@ -50,6 +65,41 @@ class LibraryViewModel(
         if (playbackController.playerState.value.isPlaying) {
             playbackController.pause()
         } else {
+            playbackController.play()
+        }
+    }
+
+    fun prepareAndPlay(bookId: Long) {
+        viewModelScope.launch {
+            playbackController.connect()
+            delay(500)
+
+            if (playbackController.currentBookId.value == bookId) {
+                togglePlayPause()
+                return@launch
+            }
+
+            val result = repository.getBookWithTracks(bookId) ?: return@launch
+            val (book, tracks) = result
+
+            val items = tracks.map { track ->
+                PlaylistItem(
+                    uri = track.fileUri,
+                    title = track.fileName,
+                    artist = book.author,
+                    artworkUri = book.coverUri,
+                )
+            }
+            playbackController.setPlaylist(items, bookId)
+
+            val progress = repository.getProgress(bookId)
+            if (progress != null && !progress.isCompleted) {
+                val trackIndex = tracks.indexOfFirst { it.id == progress.lastTrackId }
+                if (trackIndex >= 0) {
+                    playbackController.seekToTrack(trackIndex, progress.lastPositionMs)
+                }
+                playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
+            }
             playbackController.play()
         }
     }

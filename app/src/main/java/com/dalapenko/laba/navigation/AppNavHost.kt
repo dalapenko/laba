@@ -39,6 +39,7 @@ fun AppNavHost(navController: NavHostController) {
             val route = backStackEntry.toRoute<Player>()
             PlayerScreen(
                 bookId = route.bookId,
+                autoPlay = route.autoPlay,
                 onBack = { navController.popBackStack() },
             )
         }

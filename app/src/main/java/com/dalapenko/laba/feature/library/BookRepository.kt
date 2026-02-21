@@ -66,6 +66,9 @@ class BookRepository(
     suspend fun getProgress(bookId: Long): ProgressEntity? =
         progressDao.getByBook(bookId)
 
+    suspend fun getLastPlayedBookId(): Long? =
+        progressDao.getLastPlayed()?.bookId
+
     suspend fun getAllBooks(): List<BookEntity> = bookDao.getAll()
 
     suspend fun getBooksWithoutCover(): List<BookEntity> = bookDao.getBooksWithoutCover()

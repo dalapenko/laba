@@ -173,13 +173,18 @@ fun LibraryScreen(
                 ) {
                     items(books, key = { it.book.id }) { bookWithProgress ->
                         val isActive = playbackStatus.activeBookId == bookWithProgress.book.id
+                        val bookId = bookWithProgress.book.id
                         BookCard(
                             bookWithProgress = bookWithProgress,
                             isActive = isActive,
                             isPlaying = isActive && playbackStatus.isPlaying,
-                            onClick = { onBookClick(bookWithProgress.book.id) },
+                            onClick = { onBookClick(bookId) },
                             onLongClick = { bookToDelete = bookWithProgress },
-                            onCoverClick = if (isActive) viewModel::togglePlayPause else null,
+                            onCoverClick = when {
+                                isActive && playbackStatus.isMediaLoaded -> viewModel::togglePlayPause
+                                isActive -> { { viewModel.prepareAndPlay(bookId) } }
+                                else -> null
+                            },
                             modifier = Modifier.animateItem(),
                         )
                     }

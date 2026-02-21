@@ -26,6 +26,7 @@ data class PlayerUiState(
 
 class PlayerViewModel(
     private val bookId: Long,
+    private val autoPlay: Boolean,
     private val repository: BookRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
@@ -85,7 +86,7 @@ class PlayerViewModel(
             }
             playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
         }
-        playbackController.play()
+        if (autoPlay) playbackController.play()
     }
 
     private fun collectPlayerState() {
