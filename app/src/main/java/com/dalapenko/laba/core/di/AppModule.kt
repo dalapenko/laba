@@ -12,7 +12,7 @@ val appModule = module {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
-            "laba-database",
+            DATABASE_NAME,
         )
             .fallbackToDestructiveMigration(false)
             .build()
@@ -25,3 +25,5 @@ val appModule = module {
     single { BookRepository(get(), get(), get()) }
     single { FolderScanner(androidContext()) }
 }
+
+private const val DATABASE_NAME = "laba-database"

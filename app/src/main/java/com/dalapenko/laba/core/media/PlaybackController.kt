@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 data class PlayerState(
     val isPlaying: Boolean = false,
@@ -111,12 +112,12 @@ class PlaybackController(private val context: Context) {
     fun setPlaylist(items: List<PlaylistItem>) {
         val mediaItems = items.map { item ->
             MediaItem.Builder()
-                .setUri(Uri.parse(item.uri))
+                .setUri(item.uri.toUri())
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(item.title)
                         .setArtist(item.artist)
-                        .apply { item.artworkUri?.let { setArtworkUri(Uri.parse(it)) } }
+                        .apply { item.artworkUri?.let { setArtworkUri(it.toUri()) } }
                         .build()
                 )
                 .build()
