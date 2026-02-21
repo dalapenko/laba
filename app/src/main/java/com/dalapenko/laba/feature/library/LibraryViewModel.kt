@@ -4,17 +4,29 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dalapenko.laba.core.media.PlaybackController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+data class PlaybackStatus(val activeBookId: Long?, val isPlaying: Boolean)
 
 class LibraryViewModel(
     private val repository: BookRepository,
     private val scanner: FolderScanner,
+    private val playbackController: PlaybackController,
 ) : ViewModel() {
+
+    val playbackStatus: StateFlow<PlaybackStatus> = combine(
+        playbackController.currentBookId,
+        playbackController.playerState,
+    ) { bookId, state ->
+        PlaybackStatus(activeBookId = bookId, isPlaying = state.isPlaying)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackStatus(null, false))
 
     val books: StateFlow<List<BookWithProgress>> = repository.observeAllBooksWithProgress()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -32,6 +44,14 @@ class LibraryViewModel(
     init {
         // Silently fill in covers for books added before cover extraction existed
         viewModelScope.launch { resyncMissingCovers() }
+    }
+
+    fun togglePlayPause() {
+        if (playbackController.playerState.value.isPlaying) {
+            playbackController.pause()
+        } else {
+            playbackController.play()
+        }
     }
 
     // ── Import ────────────────────────────────────────────────────────────────

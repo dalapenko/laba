@@ -65,7 +65,7 @@ class PlayerViewModel(
 
         // Book is already loaded in the player (e.g. user navigated back and reopened it).
         // Don't reset the playlist or touch playback state — just let the UI reflect what's playing.
-        if (playbackController.currentBookId == bookId) return
+        if (playbackController.currentBookId.value == bookId) return
 
         val items = tracks.map { track ->
             PlaylistItem(

@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,8 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LibraryBooks
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,6 +79,7 @@ fun LibraryScreen(
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val scanResult by viewModel.scanResult.collectAsStateWithLifecycle()
+    val playbackStatus by viewModel.playbackStatus.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -168,10 +172,14 @@ fun LibraryScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(books, key = { it.book.id }) { bookWithProgress ->
+                        val isActive = playbackStatus.activeBookId == bookWithProgress.book.id
                         BookCard(
                             bookWithProgress = bookWithProgress,
+                            isActive = isActive,
+                            isPlaying = isActive && playbackStatus.isPlaying,
                             onClick = { onBookClick(bookWithProgress.book.id) },
                             onLongClick = { bookToDelete = bookWithProgress },
+                            onCoverClick = if (isActive) viewModel::togglePlayPause else null,
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -214,8 +222,11 @@ fun LibraryScreen(
 @Composable
 private fun BookCard(
     bookWithProgress: BookWithProgress,
+    isActive: Boolean,
+    isPlaying: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onCoverClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val book = bookWithProgress.book
@@ -235,6 +246,9 @@ private fun BookCard(
             BookThumbnail(
                 coverUri = book.coverUri,
                 title = book.title,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                onCoverClick = onCoverClick,
                 modifier = Modifier
                     .size(72.dp)
                     .aspectRatio(1f),
@@ -289,28 +303,57 @@ private fun BookCard(
 private fun BookThumbnail(
     coverUri: String?,
     title: String,
+    isActive: Boolean,
+    isPlaying: Boolean,
+    onCoverClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(8.dp)
-    if (coverUri != null) {
-        AsyncImage(
-            model = coverUri,
-            contentDescription = "Cover for $title",
-            modifier = modifier.clip(shape),
-            contentScale = ContentScale.Crop,
-        )
-    } else {
-        Box(
-            modifier = modifier
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = title.take(2).uppercase(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+    Box(modifier = modifier) {
+        if (coverUri != null) {
+            AsyncImage(
+                model = coverUri,
+                contentDescription = "Cover for $title",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(shape),
+                contentScale = ContentScale.Crop,
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = title.take(2).uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f))
+                    .then(
+                        if (onCoverClick != null) Modifier.clickable(onClick = onCoverClick)
+                        else Modifier
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Playing" else "Paused",
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
         }
     }
 }
