@@ -60,6 +60,13 @@ class PlayerViewModel(
     }
 
     private suspend fun setupPlaylist(book: BookEntity, tracks: List<TrackEntity>) {
+        playbackController.connect()
+        delay(500) // allow MediaController to connect
+
+        // Book is already loaded in the player (e.g. user navigated back and reopened it).
+        // Don't reset the playlist or touch playback state — just let the UI reflect what's playing.
+        if (playbackController.currentBookId == bookId) return
+
         val items = tracks.map { track ->
             PlaylistItem(
                 uri = track.fileUri,
@@ -68,9 +75,7 @@ class PlayerViewModel(
                 artworkUri = book.coverUri,
             )
         }
-        playbackController.connect()
-        delay(500) // allow MediaController to connect
-        playbackController.setPlaylist(items)
+        playbackController.setPlaylist(items, bookId)
 
         val progress = repository.getProgress(bookId)
         if (progress != null && !progress.isCompleted) {

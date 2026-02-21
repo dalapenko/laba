@@ -44,6 +44,9 @@ class PlaybackController(private val context: Context) {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var isConnecting = false
 
+    var currentBookId: Long? = null
+        private set
+
     private val _playerState = MutableStateFlow(PlayerState())
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
 
@@ -109,7 +112,8 @@ class PlaybackController(private val context: Context) {
         updateState()
     }
 
-    fun setPlaylist(items: List<PlaylistItem>) {
+    fun setPlaylist(items: List<PlaylistItem>, bookId: Long) {
+        currentBookId = bookId
         val mediaItems = items.map { item ->
             MediaItem.Builder()
                 .setUri(item.uri.toUri())
