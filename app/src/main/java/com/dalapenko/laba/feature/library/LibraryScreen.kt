@@ -21,17 +21,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,7 +84,7 @@ fun LibraryScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showFabMenu by remember { mutableStateOf(false) }
-    var bookToDelete by remember { mutableStateOf<BookWithProgress?>(null) }
+    val bookToDelete = remember { mutableStateOf<BookWithProgress?>(null) }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     val folderPicker = rememberLauncherForActivityResult(
@@ -179,7 +179,7 @@ fun LibraryScreen(
                             isActive = isActive,
                             isPlaying = isActive && playbackStatus.isPlaying,
                             onClick = { onBookClick(bookId) },
-                            onLongClick = { bookToDelete = bookWithProgress },
+                            onLongClick = { bookToDelete.value = bookWithProgress },
                             onCoverClick = when {
                                 isActive && playbackStatus.isMediaLoaded -> viewModel::togglePlayPause
                                 isActive -> { { viewModel.prepareAndPlay(bookId) } }
@@ -200,21 +200,21 @@ fun LibraryScreen(
         }
     }
 
-    bookToDelete?.let { book ->
+    bookToDelete.value?.let { book ->
         AlertDialog(
-            onDismissRequest = { bookToDelete = null },
+            onDismissRequest = { bookToDelete.value = null },
             title = { Text("Delete Book") },
             text = { Text("Remove \"${book.book.title}\" from your library?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteBook(book)
-                    bookToDelete = null
+                    bookToDelete.value = null
                 }) {
                     Text("Delete")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { bookToDelete = null }) {
+                TextButton(onClick = { bookToDelete.value = null }) {
                     Text("Cancel")
                 }
             },
@@ -370,7 +370,7 @@ private fun EmptyLibrary(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            imageVector = Icons.Default.LibraryBooks,
+            imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,

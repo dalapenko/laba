@@ -123,7 +123,7 @@ class LibraryViewModel(
                     repository.addBook(book, tracks)
                     _scanResult.value = ScanResult.Success(scanned.title)
                 }
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 _scanResult.value = ScanResult.PermissionError
             } finally {
                 _isScanning.value = false
@@ -148,7 +148,7 @@ class LibraryViewModel(
                     repository.addBook(book, tracks)
                     _scanResult.value = ScanResult.Success(scanned.title)
                 }
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 _scanResult.value = ScanResult.PermissionError
             } finally {
                 _isScanning.value = false

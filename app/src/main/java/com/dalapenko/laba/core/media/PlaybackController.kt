@@ -2,7 +2,6 @@ package com.dalapenko.laba.core.media
 
 import android.content.ComponentName
 import android.content.Context
-import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
@@ -84,7 +83,7 @@ class PlaybackController(private val context: Context) {
                     controller = mc
                     mc.addListener(listener)
                     updateState()
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Service not running yet — will be started lazily when setPlaylist is called
                 } finally {
                     isConnecting = false

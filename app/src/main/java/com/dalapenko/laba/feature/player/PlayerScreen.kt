@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -61,7 +62,7 @@ fun PlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    var showChapters by remember { mutableStateOf(false) }
+    val showChapters = remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -79,8 +80,8 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showChapters = true }) {
-                        Icon(Icons.Default.ListAlt, contentDescription = "Show chapters")
+                    IconButton(onClick = { showChapters.value = true }) {
+                        Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Show chapters")
                     }
                 },
             )
@@ -142,7 +143,7 @@ fun PlayerScreen(
                 val position = playerState.currentPositionMs.toFloat()
                 val duration = playerState.durationMs.toFloat().coerceAtLeast(1f)
                 var isSeeking by remember { mutableStateOf(false) }
-                var seekPosition by remember { mutableStateOf(0f) }
+                var seekPosition by remember { mutableFloatStateOf(0f) }
 
                 Slider(
                     value = if (isSeeking) seekPosition else position,
@@ -235,15 +236,15 @@ fun PlayerScreen(
         }
     }
 
-    if (showChapters) {
+    if (showChapters.value) {
         ChapterBottomSheet(
             tracks = uiState.tracks,
             currentTrackIndex = playerState.currentMediaItemIndex,
             onTrackSelected = { index ->
                 viewModel.skipToTrack(index)
-                showChapters = false
+                showChapters.value = false
             },
-            onDismiss = { showChapters = false },
+            onDismiss = { showChapters.value = false },
         )
     }
 }
