@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.Surface
 import androidx.navigation.compose.rememberNavController
 import com.dalapenko.laba.navigation.AppNavHost
 import com.dalapenko.laba.ui.theme.LabaTheme
@@ -14,8 +15,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LabaTheme {
-                val navController = rememberNavController()
-                AppNavHost(navController)
+                Surface {
+                    val navController = rememberNavController()
+                    AppNavHost(navController)
+                }
             }
         }
     }

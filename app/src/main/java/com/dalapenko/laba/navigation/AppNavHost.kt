@@ -1,5 +1,9 @@
 package com.dalapenko.laba.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -18,7 +22,20 @@ fun AppNavHost(navController: NavHostController) {
                 },
             )
         }
-        composable<Player> { backStackEntry ->
+        composable<Player>(
+            enterTransition = {
+                slideInVertically(initialOffsetY = { it }) + fadeIn(initialAlpha = 0.3f)
+            },
+            exitTransition = {
+                slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            },
+            popEnterTransition = {
+                slideInVertically(initialOffsetY = { it }) + fadeIn(initialAlpha = 0.3f)
+            },
+            popExitTransition = {
+                slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            },
+        ) { backStackEntry ->
             val route = backStackEntry.toRoute<Player>()
             PlayerScreen(
                 bookId = route.bookId,
