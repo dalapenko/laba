@@ -101,6 +101,14 @@ class LibraryViewModel(
                 }
             }
         }
+        // Purge in-memory snapshots for books that no longer exist in the library.
+        // Runs on every DB change (including deletes) so the map never grows unboundedly.
+        viewModelScope.launch {
+            repository.observeAllBooksWithProgress().collect { bookList ->
+                val activeIds = bookList.map { it.book.id }.toSet()
+                playbackController.cleanupOldSnapshots(activeIds)
+            }
+        }
     }
 
     fun togglePlayPause() {
