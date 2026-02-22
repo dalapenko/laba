@@ -13,5 +13,6 @@ local.properties
 # AI
 .beads
 .claude
+swarm-report
 AGENTS.md
 CLAUDE.md

@@ -11,4 +11,5 @@ data class BookEntity(
     val coverUri: String? = null,
     val rootFolderUri: String,
     val totalDurationMs: Long,
+    val isAvailable: Boolean = true,
 )

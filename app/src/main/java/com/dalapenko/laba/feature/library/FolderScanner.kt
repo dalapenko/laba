@@ -3,6 +3,7 @@ package com.dalapenko.laba.feature.library
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import com.dalapenko.laba.core.database.entity.BookEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
@@ -122,6 +123,66 @@ class FolderScanner(private val context: Context) {
     }
 
     /**
+     * Lightweight check: returns true if the root folder/file URI is still accessible.
+     * Does NOT open MediaMetadataRetriever — only tests DocumentFile existence.
+     * 
+     * Uses multiple strategies to bypass DocumentFile caching issues that can
+     * occur when files are deleted and then restored from trash.
+     */
+    suspend fun isBookAvailable(rootFolderUri: String): Boolean = withContext(Dispatchers.IO) {
+        val uri = rootFolderUri.toUri()
+        val isTree = isTreeUri(uri)
+        
+        // For single files: try to open input stream (most reliable)
+        if (!isTree) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { 
+                    return@withContext true
+                }
+            } catch (_: Exception) {
+                return@withContext false
+            }
+        }
+        
+        // For tree URIs (folders): verify folder exists and has audio files
+        try {
+            val doc = DocumentFile.fromTreeUri(context, uri) ?: return@withContext false
+            
+            // First check if folder itself exists
+            if (!doc.exists()) return@withContext false
+            
+            // Force DocumentFile to re-query by checking listFiles()
+            // This is more reliable than exists() for tree URIs
+            val files = doc.listFiles()
+            
+            // Check if we have any audio files (not just any files)
+            val hasAudioFiles = files.any { file ->
+                file.isFile && file.type?.startsWith("audio/") == true
+            }
+            
+            return@withContext hasAudioFiles
+        } catch (_: SecurityException) {
+            return@withContext false
+        } catch (_: Exception) {
+            // Last resort: try ContentResolver query fallback
+            try {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    return@withContext cursor.count > 0
+                }
+                return@withContext false
+            } catch (_: Exception) {
+                return@withContext false
+            }
+        }
+    }
+
+    /**
      * Deletes a cover that was written to internal storage by this scanner.
      * SAF content:// URIs (folder images owned by the user) are never touched.
      */
@@ -155,35 +216,37 @@ class FolderScanner(private val context: Context) {
     // ── Metadata extraction ───────────────────────────────────────────────────
 
     private fun extractAudioMeta(uri: Uri): AudioMeta {
+        val retriever = MediaMetadataRetriever()
         return try {
-            MediaMetadataRetriever().use { r ->
-                r.setDataSource(context, uri)
-                val author = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
-                    ?: r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-                    ?: r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                AudioMeta(
-                    title = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
-                    album = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM),
-                    author = author,
-                    durationMs = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                        ?.toLongOrNull() ?: 0L,
-                    embeddedPictureBytes = r.embeddedPicture,
-                )
-            }
+            retriever.setDataSource(context, uri)
+            val author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
+                ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
+                ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+            AudioMeta(
+                title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
+                album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM),
+                author = author,
+                durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    ?.toLongOrNull() ?: 0L,
+                embeddedPictureBytes = retriever.embeddedPicture,
+            )
         } catch (_: Exception) {
             AudioMeta(null, null, null, 0L, null)
+        } finally {
+            retriever.release()
         }
     }
 
     private fun extractDuration(uri: Uri): Long {
+        val retriever = MediaMetadataRetriever()
         return try {
-            MediaMetadataRetriever().use { r ->
-                r.setDataSource(context, uri)
-                r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    ?.toLongOrNull() ?: 0L
-            }
+            retriever.setDataSource(context, uri)
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L
         } catch (_: Exception) {
             0L
+        } finally {
+            retriever.release()
         }
     }
 

@@ -13,6 +13,7 @@ data class BookWithProgress(
     val book: BookEntity,
     val progress: ProgressEntity?,
     val progressFraction: Float,
+    val isAvailable: Boolean = book.isAvailable,
 )
 
 class BookRepository(
@@ -31,6 +32,7 @@ class BookRepository(
                     book = book,
                     progress = progress,
                     progressFraction = computeProgressFraction(book, progress),
+                    isAvailable = book.isAvailable,
                 )
             }
         }
@@ -77,5 +79,20 @@ class BookRepository(
 
     suspend fun deleteBook(book: BookEntity) {
         bookDao.delete(book)
+    }
+
+    suspend fun getBookById(bookId: Long): BookEntity? = bookDao.getById(bookId)
+
+    suspend fun setBookAvailability(bookId: Long, isAvailable: Boolean) =
+        bookDao.updateAvailability(bookId, isAvailable)
+
+    suspend fun recheckAllAvailability(scanner: FolderScanner) {
+        val books = bookDao.getAll()
+        for (book in books) {
+            val available = scanner.isBookAvailable(book.rootFolderUri)
+            if (available != book.isAvailable) {
+                bookDao.updateAvailability(book.id, available)
+            }
+        }
     }
 }

@@ -61,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +98,15 @@ fun LibraryScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let { viewModel.onFilePicked(it, context.contentResolver) }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                LibraryEvent.FileNotAvailable ->
+                    snackbarHostState.showSnackbar("File not available")
+            }
+        }
     }
 
     LaunchedEffect(scanResult) {
@@ -178,9 +188,14 @@ fun LibraryScreen(
                             bookWithProgress = bookWithProgress,
                             isActive = isActive,
                             isPlaying = isActive && playbackStatus.isPlaying,
-                            onClick = { onBookClick(bookId) },
+                            isAvailable = bookWithProgress.isAvailable,
+                            onClick = {
+                                if (bookWithProgress.isAvailable) onBookClick(bookId)
+                                else viewModel.onUnavailableBookClicked()
+                            },
                             onLongClick = { bookToDelete.value = bookWithProgress },
                             onCoverClick = when {
+                                !bookWithProgress.isAvailable -> null
                                 isActive && playbackStatus.isMediaLoaded -> viewModel::togglePlayPause
                                 isActive -> { { viewModel.prepareAndPlay(bookId) } }
                                 else -> null
@@ -229,6 +244,7 @@ private fun BookCard(
     bookWithProgress: BookWithProgress,
     isActive: Boolean,
     isPlaying: Boolean,
+    isAvailable: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onCoverClick: (() -> Unit)?,
@@ -241,6 +257,7 @@ private fun BookCard(
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
+            .alpha(if (isAvailable) 1f else 0.4f)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,

@@ -13,7 +13,7 @@ import com.dalapenko.laba.core.database.entity.TrackEntity
 
 @Database(
     entities = [BookEntity::class, TrackEntity::class, ProgressEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,6 +25,12 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE progress ADD COLUMN playbackSpeed REAL NOT NULL DEFAULT 1.0")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE books ADD COLUMN isAvailable INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

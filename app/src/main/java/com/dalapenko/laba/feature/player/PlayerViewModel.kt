@@ -6,16 +6,25 @@ import com.dalapenko.laba.core.database.entity.BookEntity
 import com.dalapenko.laba.core.database.entity.ProgressEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
 import com.dalapenko.laba.core.media.PlaybackController
+import com.dalapenko.laba.core.media.PlaybackError
 import com.dalapenko.laba.core.media.PlayerState
 import com.dalapenko.laba.core.media.PlaylistItem
 import com.dalapenko.laba.feature.library.BookRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+sealed interface PlayerEvent {
+    data object ClosePlayer : PlayerEvent
+    data class TrackUnavailable(val trackName: String) : PlayerEvent
+}
 
 data class PlayerUiState(
     val book: BookEntity? = null,
@@ -31,6 +40,9 @@ class PlayerViewModel(
     private val playbackController: PlaybackController,
 ) : ViewModel() {
 
+    private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<PlayerEvent> = _events.asSharedFlow()
+
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
@@ -41,6 +53,7 @@ class PlayerViewModel(
         loadBook()
         collectPlayerState()
         startProgressAutoSave()
+        observePlaybackErrors()
     }
 
     private fun loadBook() {
@@ -166,6 +179,27 @@ class PlayerViewModel(
                     playbackSpeed = state.playbackSpeed,
                 )
             )
+        }
+    }
+
+    private fun observePlaybackErrors() {
+        viewModelScope.launch {
+            playbackController.playbackError.collect { error ->
+                when (error) {
+                    is PlaybackError.TrackUnavailable -> {
+                        // Get track name from the UI state
+                        val trackName = _uiState.value.tracks
+                            .getOrNull(error.trackIndex)?.fileName ?: "Track ${error.trackIndex + 1}"
+                        _events.emit(PlayerEvent.TrackUnavailable(trackName))
+                    }
+                    PlaybackError.BookUnavailable -> {
+                        // All tracks unavailable or can't recover - mark book unavailable
+                        repository.setBookAvailability(bookId, false)
+                        playbackController.stop()
+                        _events.emit(PlayerEvent.ClosePlayer)
+                    }
+                }
+            }
         }
     }
 

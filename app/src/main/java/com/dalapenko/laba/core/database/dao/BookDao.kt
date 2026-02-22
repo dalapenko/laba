@@ -28,6 +28,9 @@ interface BookDao {
     @Update
     suspend fun update(book: BookEntity)
 
+    @Query("UPDATE books SET isAvailable = :isAvailable WHERE id = :bookId")
+    suspend fun updateAvailability(bookId: Long, isAvailable: Boolean)
+
     @Delete
     suspend fun delete(book: BookEntity)
 }

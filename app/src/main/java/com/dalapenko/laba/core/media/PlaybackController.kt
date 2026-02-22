@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
@@ -14,8 +15,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
@@ -36,12 +40,21 @@ data class PlaylistItem(
     val artworkUri: String? = null,
 )
 
+sealed interface PlaybackError {
+    data class TrackUnavailable(val trackIndex: Int) : PlaybackError
+    data object BookUnavailable : PlaybackError
+}
+
 class PlaybackController(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var isConnecting = false
+    
+    // Track consecutive errors to detect if entire book is unavailable
+    private var consecutiveErrors = 0
+    private var lastErrorTrackIndex = -1
 
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
@@ -49,8 +62,16 @@ class PlaybackController(private val context: Context) {
     private val _playerState = MutableStateFlow(PlayerState())
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
 
+    private val _playbackError = MutableSharedFlow<PlaybackError>(extraBufferCapacity = 1)
+    val playbackError: SharedFlow<PlaybackError> = _playbackError.asSharedFlow()
+
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            // Reset error counter when playback succeeds
+            if (isPlaying) {
+                consecutiveErrors = 0
+                lastErrorTrackIndex = -1
+            }
             updateState()
             if (isPlaying) startPositionPolling()
         }
@@ -66,11 +87,42 @@ class PlaybackController(private val context: Context) {
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
             updateState()
         }
+
+        override fun onPlayerError(error: PlaybackException) {
+            if (error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
+                error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
+                error.errorCode == PlaybackException.ERROR_CODE_IO_NO_PERMISSION
+            ) {
+                val trackIndex = controller?.currentMediaItemIndex ?: -1
+                
+                // Track consecutive errors to detect if entire book is gone
+                if (trackIndex == lastErrorTrackIndex) {
+                    consecutiveErrors++
+                } else {
+                    consecutiveErrors = 1
+                    lastErrorTrackIndex = trackIndex
+                }
+                
+                // If we've had 3+ consecutive errors on different tracks, entire book is likely gone
+                if (consecutiveErrors >= 3) {
+                    consecutiveErrors = 0
+                    _playbackError.tryEmit(PlaybackError.BookUnavailable)
+                    return
+                }
+                
+                if (trackIndex >= 0) {
+                    _playbackError.tryEmit(PlaybackError.TrackUnavailable(trackIndex))
+                    // Try to recover by moving to previous track's end
+                    handleMissingTrack(trackIndex)
+                } else {
+                    _playbackError.tryEmit(PlaybackError.BookUnavailable)
+                }
+            }
+        }
     }
 
     /** Connect (or reconnect) to an existing or new MediaSession. Safe to call multiple times. */
     fun connect() {
-        if (isConnecting || controller?.isConnected == true) return
         isConnecting = true
 
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -99,6 +151,12 @@ class PlaybackController(private val context: Context) {
 
     fun pause() {
         controller?.pause()
+    }
+
+    fun stop() {
+        controller?.stop()
+        _currentBookId.value = null
+        updateState()
     }
 
     fun seekTo(positionMs: Long) {
@@ -139,6 +197,43 @@ class PlaybackController(private val context: Context) {
         controller?.removeListener(listener)
         MediaController.releaseFuture(controllerFuture ?: return)
         controller = null
+    }
+
+    private fun handleMissingTrack(missingTrackIndex: Int) {
+        val c = controller ?: return
+        
+        // If this is the first track, try to skip to the next available track
+        if (missingTrackIndex == 0) {
+            if (c.mediaItemCount > 1) {
+                c.seekToNext()
+            } else {
+                // Only one track and it's missing - stop playback
+                c.stop()
+            }
+            return
+        }
+        
+        // For other tracks, seek to the end of the previous track and pause
+        val previousTrackIndex = missingTrackIndex - 1
+        if (previousTrackIndex >= 0 && previousTrackIndex < c.mediaItemCount) {
+            // Seek to previous track
+            c.seekTo(previousTrackIndex, 0L)
+            // Get duration of previous track and seek to near the end
+            scope.launch {
+                delay(100) // Wait for media to load
+                val duration = c.duration
+                if (duration > 0) {
+                    // Seek to 1 second before the end, or the end if track is shorter
+                    val seekPosition = (duration - 1000).coerceAtLeast(0)
+                    c.seekTo(previousTrackIndex, seekPosition)
+                }
+                c.pause()
+                updateState()
+            }
+        } else {
+            // Fallback: just stop playback
+            c.stop()
+        }
     }
 
     private fun updateState() {

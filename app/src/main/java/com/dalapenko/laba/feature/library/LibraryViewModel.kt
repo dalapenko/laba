@@ -7,9 +7,12 @@ import androidx.lifecycle.viewModelScope
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaylistItem
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -26,6 +29,9 @@ class LibraryViewModel(
     private val scanner: FolderScanner,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
+
+    private val _events = MutableSharedFlow<LibraryEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<LibraryEvent> = _events.asSharedFlow()
 
     private val _lastPlayedBookId = MutableStateFlow<Long?>(null)
 
@@ -59,6 +65,7 @@ class LibraryViewModel(
         viewModelScope.launch { _lastPlayedBookId.value = repository.getLastPlayedBookId() }
         // Silently fill in covers for books added before cover extraction existed
         viewModelScope.launch { resyncMissingCovers() }
+        viewModelScope.launch { repository.recheckAllAvailability(scanner) }
     }
 
     fun togglePlayPause() {
@@ -71,6 +78,17 @@ class LibraryViewModel(
 
     fun prepareAndPlay(bookId: Long) {
         viewModelScope.launch {
+            val bookCheck = repository.getBookById(bookId)
+            if (bookCheck != null && !bookCheck.isAvailable) {
+                _events.tryEmit(LibraryEvent.FileNotAvailable)
+                return@launch
+            }
+            if (bookCheck != null && !scanner.isBookAvailable(bookCheck.rootFolderUri)) {
+                repository.setBookAvailability(bookId, false)
+                _events.tryEmit(LibraryEvent.FileNotAvailable)
+                return@launch
+            }
+
             playbackController.connect()
             delay(500)
 
@@ -158,15 +176,20 @@ class LibraryViewModel(
 
     // ── Resync ────────────────────────────────────────────────────────────────
 
-    /** Pull-to-refresh: re-scan all books and update their metadata. */
+    /** Pull-to-refresh: re-check availability then re-scan metadata for available books. */
     fun resyncAll() {
         if (_isRefreshing.value) return
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
+                // Same lightweight exists() check as app startup — reliable for restoring
+                // availability when a file comes back (e.g. undeleted from trash).
+                repository.recheckAllAvailability(scanner)
+                // Metadata rescan only for books confirmed available by the check above.
                 repository.getAllBooks().forEach { book ->
+                    if (!book.isAvailable) return@forEach
                     val updated = scanner.rescanBookMeta(book) ?: return@forEach
-                    repository.updateBookMeta(updated)
+                    repository.updateBookMeta(updated.copy(isAvailable = true))
                 }
             } finally {
                 _isRefreshing.value = false
@@ -191,9 +214,17 @@ class LibraryViewModel(
         }
     }
 
+    fun onUnavailableBookClicked() {
+        _events.tryEmit(LibraryEvent.FileNotAvailable)
+    }
+
     fun clearScanResult() {
         _scanResult.value = null
     }
+}
+
+sealed interface LibraryEvent {
+    data object FileNotAvailable : LibraryEvent
 }
 
 sealed interface ScanResult {
