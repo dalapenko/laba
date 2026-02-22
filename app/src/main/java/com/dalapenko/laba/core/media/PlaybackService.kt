@@ -66,7 +66,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     @OptIn(UnstableApi::class)
-    private inner class PlaybackSessionCallback : MediaSession.Callback {
+    private class PlaybackSessionCallback : MediaSession.Callback {
 
         override fun onConnect(
             session: MediaSession,

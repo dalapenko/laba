@@ -124,9 +124,6 @@ class LibraryViewModel(
                 return@launch
             }
 
-            playbackController.connect()
-            delay(500)
-
             if (playbackController.currentBookId.value == bookId) {
                 togglePlayPause()
                 return@launch

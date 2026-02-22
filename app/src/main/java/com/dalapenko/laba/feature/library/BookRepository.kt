@@ -21,8 +21,6 @@ class BookRepository(
     private val trackDao: TrackDao,
     private val progressDao: ProgressDao,
 ) {
-    fun observeAllBooks(): Flow<List<BookEntity>> = bookDao.observeAll()
-
     fun observeAllBooksWithProgress(): Flow<List<BookWithProgress>> =
         combine(bookDao.observeAll(), progressDao.observeAll()) { books, allProgress ->
             val progressMap = allProgress.associateBy { it.bookId }
@@ -61,9 +59,6 @@ class BookRepository(
     suspend fun saveProgress(progress: ProgressEntity) {
         progressDao.upsert(progress)
     }
-
-    fun observeProgress(bookId: Long): Flow<ProgressEntity?> =
-        progressDao.observeByBook(bookId)
 
     suspend fun getProgress(bookId: Long): ProgressEntity? =
         progressDao.getByBook(bookId)

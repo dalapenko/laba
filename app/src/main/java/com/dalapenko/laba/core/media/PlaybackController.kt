@@ -45,11 +45,18 @@ sealed interface PlaybackError {
     data object BookUnavailable : PlaybackError
 }
 
+/**
+ * Singleton controller managing playback via MediaSessionService.
+ * 
+ * Lifecycle: Connects once at app startup via [LabaApp.onCreate], persists until process death.
+ * This enables background playback and survives configuration changes.
+ * 
+ * Thread safety: All methods must be called from the main thread.
+ */
 class PlaybackController(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
-    private var controllerFuture: ListenableFuture<MediaController>? = null
     private var isConnecting = false
     
     // Track consecutive errors to detect if entire book is unavailable
@@ -129,13 +136,13 @@ class PlaybackController(private val context: Context) {
         }
     }
 
-    /** Connect (or reconnect) to an existing or new MediaSession. Safe to call multiple times. */
+    /** Connect to an existing or new MediaSession. No-op if already connected or connecting. */
     fun connect() {
+        if (controller != null || isConnecting) return
         isConnecting = true
 
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         val future = MediaController.Builder(context, sessionToken).buildAsync()
-        controllerFuture = future
         future.addListener(
             {
                 try {
@@ -228,12 +235,6 @@ class PlaybackController(private val context: Context) {
 
     fun setSpeed(speed: Float) {
         controller?.setPlaybackSpeed(speed)
-    }
-
-    fun release() {
-        controller?.removeListener(listener)
-        MediaController.releaseFuture(controllerFuture ?: return)
-        controller = null
     }
 
     private fun handleMissingTrack(missingTrackIndex: Int) {

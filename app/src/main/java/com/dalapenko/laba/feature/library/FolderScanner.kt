@@ -33,7 +33,7 @@ private data class AudioMeta(
     val album: String?,
     val author: String?,
     val durationMs: Long,
-    val embeddedPictureBytes: ByteArray?,
+    val embeddedPictureBytes: List<Byte>?,
 )
 
 class FolderScanner(private val context: Context) {
@@ -60,7 +60,7 @@ class FolderScanner(private val context: Context) {
 
         // Prefer an image file in the folder; fall back to embedded art from first track
         val coverUri = findFolderCoverUri(root)
-            ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it, treeUri.toString()) }
+            ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it.toByteArray(), treeUri.toString()) }
 
         ScannedBook(
             title = firstMeta.album ?: root.name ?: "Unknown Book",
@@ -77,7 +77,7 @@ class FolderScanner(private val context: Context) {
 
         val meta = extractAudioMeta(uri)
         val fileName = file.name ?: "Unknown Track"
-        val coverUri = meta.embeddedPictureBytes?.let { saveEmbeddedArt(it, uri.toString()) }
+        val coverUri = meta.embeddedPictureBytes?.let { saveEmbeddedArt(it.toByteArray(), uri.toString()) }
 
         ScannedBook(
             title = meta.title ?: fileName.substringBeforeLast('.'),
@@ -188,7 +188,7 @@ class FolderScanner(private val context: Context) {
      */
     fun deleteCoverFile(coverUri: String?) {
         if (coverUri == null) return
-        val parsed = Uri.parse(coverUri)
+        val parsed = coverUri.toUri()
         if (parsed.scheme == "file") parsed.path?.let { File(it).delete() }
     }
 
@@ -228,7 +228,7 @@ class FolderScanner(private val context: Context) {
                 author = author,
                 durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull() ?: 0L,
-                embeddedPictureBytes = retriever.embeddedPicture,
+                embeddedPictureBytes = retriever.embeddedPicture?.toList(),
             )
         } catch (_: Exception) {
             AudioMeta(null, null, null, 0L, null)

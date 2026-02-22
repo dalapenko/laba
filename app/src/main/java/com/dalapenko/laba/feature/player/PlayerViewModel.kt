@@ -112,9 +112,6 @@ class PlayerViewModel(
     }
 
     private suspend fun setupPlaylist(book: BookEntity, tracks: List<TrackEntity>) {
-        playbackController.connect()
-        delay(500) // allow MediaController to connect
-
         // Book is already loaded in the player (e.g. user navigated back and reopened it).
         // Don't reset the playlist or touch playback state — just let the UI reflect what's playing.
         if (playbackController.currentBookId.value == bookId) return
