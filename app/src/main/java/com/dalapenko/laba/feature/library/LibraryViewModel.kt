@@ -209,6 +209,9 @@ class LibraryViewModel(
 
     fun deleteBook(bookWithProgress: BookWithProgress) {
         viewModelScope.launch {
+            if (playbackController.currentBookId.value == bookWithProgress.book.id) {
+                playbackController.stop()
+            }
             repository.deleteBook(bookWithProgress.book)
             scanner.deleteCoverFile(bookWithProgress.book.coverUri)
         }
