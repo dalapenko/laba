@@ -139,7 +139,19 @@ class PlayerViewModel(
             }
             playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
         } else {
-            // No saved progress - unlock state updates to allow Media3 to take over
+            // No saved progress or book was previously completed — start from beginning.
+            // Reset isCompleted so LibraryScreen immediately shows progress bar instead of "Completed".
+            if (progress != null) {
+                repository.saveProgress(
+                    progress.copy(
+                        isCompleted = false,
+                        lastPositionMs = 0L,
+                        completedTracksMs = 0L,
+                        lastTrackId = tracks.first().id,
+                        lastUpdated = System.currentTimeMillis(),
+                    )
+                )
+            }
             playbackController.unlockStateUpdates()
         }
         
