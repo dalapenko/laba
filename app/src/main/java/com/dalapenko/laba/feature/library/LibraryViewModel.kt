@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dalapenko.laba.core.database.entity.TrackEntity
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaylistItem
 import kotlinx.coroutines.delay
@@ -48,8 +49,32 @@ class LibraryViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackStatus(null, false, false))
 
-    val books: StateFlow<List<BookWithProgress>> = repository.observeAllBooksWithProgress()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Tracks for the currently-playing book; used to compute live progress fraction.
+    private val _currentBookTracks = MutableStateFlow<Pair<Long, List<TrackEntity>>?>(null)
+
+    val books: StateFlow<List<BookWithProgress>> = combine(
+        repository.observeAllBooksWithProgress(),
+        playbackController.currentBookId,
+        playbackController.playerState,
+        _currentBookTracks,
+    ) { dbBooks, activeBookId, playerState, tracksForBook ->
+        if (activeBookId == null) return@combine dbBooks
+        val tracks = tracksForBook?.takeIf { it.first == activeBookId }?.second
+            ?: return@combine dbBooks
+        if (tracks.isEmpty()) return@combine dbBooks
+        dbBooks.map { item ->
+            if (item.book.id != activeBookId) item
+            else {
+                val currentIndex = playerState.currentMediaItemIndex.coerceIn(0, tracks.lastIndex)
+                val completedTracksMs = tracks.take(currentIndex).sumOf { it.durationMs }
+                val absolute = completedTracksMs + playerState.currentPositionMs
+                val liveFraction = if (item.book.totalDurationMs > 0)
+                    (absolute.toFloat() / item.book.totalDurationMs).coerceIn(0f, 1f)
+                else 0f
+                item.copy(progressFraction = liveFraction)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
@@ -66,6 +91,16 @@ class LibraryViewModel(
         // Silently fill in covers for books added before cover extraction existed
         viewModelScope.launch { resyncMissingCovers() }
         viewModelScope.launch { repository.recheckAllAvailability(scanner) }
+        // Keep track list in sync with whatever book is currently loaded in the player.
+        // This drives the live progress fraction in `books` without requiring DB writes.
+        viewModelScope.launch {
+            playbackController.currentBookId.collect { bookId ->
+                if (bookId != null && _currentBookTracks.value?.first != bookId) {
+                    val result = repository.getBookWithTracks(bookId)
+                    if (result != null) _currentBookTracks.value = bookId to result.second
+                }
+            }
+        }
     }
 
     fun togglePlayPause() {
@@ -99,6 +134,31 @@ class LibraryViewModel(
 
             val result = repository.getBookWithTracks(bookId) ?: return@launch
             val (book, tracks) = result
+            _currentBookTracks.value = bookId to tracks
+
+            // Pre-populate playerState from saved progress BEFORE setPlaylist so the
+            // isLoadingPlaylist lock prevents Media3's zero-state from overwriting it,
+            // keeping the library progress bar smooth (same technique as PlayerViewModel).
+            val progress = repository.getProgress(bookId)
+            val savedTrackIndex = if (progress != null && !progress.isCompleted)
+                tracks.indexOfFirst { it.id == progress.lastTrackId }.takeIf { it >= 0 }
+            else null
+
+            if (savedTrackIndex != null && progress != null) {
+                playbackController.setInitialState(
+                    position = progress.lastPositionMs,
+                    duration = tracks[savedTrackIndex].durationMs,
+                    trackIndex = savedTrackIndex,
+                    speed = progress.playbackSpeed.coerceIn(0.5f, 2.0f),
+                )
+            } else {
+                playbackController.setInitialState(
+                    position = 0L,
+                    duration = tracks.firstOrNull()?.durationMs ?: 0L,
+                    trackIndex = 0,
+                    speed = 1.0f,
+                )
+            }
 
             val items = tracks.map { track ->
                 PlaylistItem(
@@ -110,12 +170,8 @@ class LibraryViewModel(
             }
             playbackController.setPlaylist(items, bookId)
 
-            val progress = repository.getProgress(bookId)
-            if (progress != null && !progress.isCompleted) {
-                val trackIndex = tracks.indexOfFirst { it.id == progress.lastTrackId }
-                if (trackIndex >= 0) {
-                    playbackController.seekToTrack(trackIndex, progress.lastPositionMs)
-                }
+            if (savedTrackIndex != null && progress != null) {
+                playbackController.seekToTrack(savedTrackIndex, progress.lastPositionMs)
                 playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
             }
             playbackController.play()
