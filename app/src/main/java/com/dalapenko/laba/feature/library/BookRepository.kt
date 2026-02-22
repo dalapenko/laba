@@ -56,6 +56,11 @@ class BookRepository(
         return bookId
     }
 
+    suspend fun addBookIfNew(book: BookEntity, tracks: List<TrackEntity>): Long {
+        if (bookDao.existsByRootUri(book.rootFolderUri)) return -1L
+        return addBook(book, tracks)
+    }
+
     suspend fun saveProgress(progress: ProgressEntity) {
         progressDao.upsert(progress)
     }

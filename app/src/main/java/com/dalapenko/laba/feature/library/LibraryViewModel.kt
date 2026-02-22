@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.dalapenko.laba.core.database.entity.TrackEntity
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaylistItem
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -193,14 +192,22 @@ class LibraryViewModel(
                         Intent.FLAG_GRANT_READ_URI_PERMISSION,
                     )
                 }
-                val scanned = scanner.scanFolder(uri)
-                if (scanned == null || scanned.tracks.isEmpty()) {
+                val scannedBooks = scanner.scanFolderTree(uri)
+                if (scannedBooks.isEmpty()) {
                     _scanResult.value = ScanResult.Empty
                 } else {
-                    val book = scanner.toBookEntity(scanned)
-                    val tracks = scanner.toTrackEntities(scanned)
-                    repository.addBook(book, tracks)
-                    _scanResult.value = ScanResult.Success(scanned.title)
+                    var addedCount = 0
+                    val firstTitle = scannedBooks.first().title
+                    for (scanned in scannedBooks) {
+                        val book = scanner.toBookEntity(scanned)
+                        val tracks = scanner.toTrackEntities(scanned)
+                        val id = repository.addBookIfNew(book, tracks)
+                        if (id != -1L) addedCount++
+                    }
+                    _scanResult.value = when {
+                        addedCount == 0 -> ScanResult.Duplicate
+                        else -> ScanResult.Success(firstTitle, addedCount)
+                    }
                 }
             } catch (_: SecurityException) {
                 _scanResult.value = ScanResult.PermissionError
@@ -309,7 +316,8 @@ sealed interface LibraryEvent {
 }
 
 sealed interface ScanResult {
-    data class Success(val title: String) : ScanResult
+    data class Success(val title: String, val count: Int = 1) : ScanResult
     data object Empty : ScanResult
+    data object Duplicate : ScanResult
     data object PermissionError : ScanResult
 }

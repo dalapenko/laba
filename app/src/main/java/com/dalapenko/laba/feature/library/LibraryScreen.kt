@@ -125,7 +125,13 @@ fun LibraryScreen(
                 viewModel.clearScanResult()
             }
             is ScanResult.Success -> {
-                snackbarHostState.showSnackbar("Added: ${result.title}")
+                val msg = if (result.count == 1) "Added: ${result.title}"
+                    else "Added ${result.count} books"
+                snackbarHostState.showSnackbar(msg)
+                viewModel.clearScanResult()
+            }
+            is ScanResult.Duplicate -> {
+                snackbarHostState.showSnackbar("Already in library")
                 viewModel.clearScanResult()
             }
             null -> {}

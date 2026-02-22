@@ -95,6 +95,60 @@ class FolderScanner(private val context: Context) {
         )
     }
 
+    suspend fun scanFolderTree(treeUri: Uri): List<ScannedBook> = withContext(Dispatchers.IO) {
+        val root = DocumentFile.fromTreeUri(context, treeUri) ?: return@withContext emptyList()
+        val results = mutableListOf<ScannedBook>()
+        collectBooksRecursive(root, treeUri, results, 0, mutableSetOf())
+        results
+    }
+
+    private fun collectBooksRecursive(
+        dir: DocumentFile,
+        treeUri: Uri,
+        out: MutableList<ScannedBook>,
+        depth: Int,
+        visited: MutableSet<String>,
+    ) {
+        if (depth > MAX_DEPTH) return
+        val uriKey = dir.uri.toString()
+        if (!visited.add(uriKey)) return
+
+        val children = dir.listFiles()
+        val directAudio = children.filter { it.isFile && it.type?.startsWith("audio/") == true }
+        if (directAudio.isNotEmpty()) {
+            val sorted = directAudio.sortedWith(naturalOrderComparator())
+            val firstMeta = extractAudioMeta(sorted.first().uri)
+
+            val tracks = sorted.mapIndexed { index, file ->
+                ScannedTrack(
+                    fileUri = file.uri.toString(),
+                    fileName = file.name ?: "Track ${index + 1}",
+                    durationMs = if (index == 0) firstMeta.durationMs else extractDuration(file.uri),
+                    sequenceOrder = index,
+                )
+            }
+
+            val coverUri = findFolderCoverUri(dir)
+                ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it.toByteArray(), dir.uri.toString()) }
+
+            out.add(
+                ScannedBook(
+                    title = firstMeta.album ?: dir.name ?: "Unknown Book",
+                    author = firstMeta.author,
+                    rootUri = dir.uri.toString(),
+                    tracks = tracks,
+                    coverUri = coverUri,
+                )
+            )
+        }
+
+        for (child in children) {
+            if (child.isDirectory) {
+                collectBooksRecursive(child, treeUri, out, depth + 1, visited)
+            }
+        }
+    }
+
     /**
      * Re-scans an existing book to refresh title, author, cover, and total duration.
      * Track list is NOT modified so in-progress positions remain valid.
@@ -343,3 +397,5 @@ private fun splitIntoChunks(s: String): List<String> {
     if (current.isNotEmpty()) chunks.add(current.toString())
     return chunks
 }
+
+private const val MAX_DEPTH = 10

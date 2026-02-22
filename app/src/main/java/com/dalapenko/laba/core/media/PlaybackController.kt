@@ -9,7 +9,6 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,16 +49,13 @@ sealed interface PlaybackError {
 /**
  * Singleton controller managing playback via MediaSessionService.
  * 
- * Lifecycle: Connects once at app startup via [LabaApp.onCreate], persists until process death.
+ * Lifecycle: Connects once at app startup via [com.dalapenko.laba.LabaApp.onCreate],
+ * persists until process death.
  * This enables background playback and survives configuration changes.
  * 
  * Thread safety: All methods must be called from the main thread.
  */
 class PlaybackController(private val context: Context) {
-
-    private companion object {
-        const val TAG = "PlaybackController"
-    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
@@ -380,3 +376,5 @@ class PlaybackController(private val context: Context) {
         }
     }
 }
+
+private const val TAG = "PlaybackController"

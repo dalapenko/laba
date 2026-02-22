@@ -22,6 +22,9 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: Long): BookEntity?
 
+    @Query("SELECT EXISTS(SELECT 1 FROM books WHERE rootFolderUri = :uri LIMIT 1)")
+    suspend fun existsByRootUri(uri: String): Boolean
+
     @Insert
     suspend fun insert(book: BookEntity): Long
 

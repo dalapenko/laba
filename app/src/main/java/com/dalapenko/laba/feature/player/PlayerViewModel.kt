@@ -42,10 +42,6 @@ class PlayerViewModel(
     private val playbackController: PlaybackController,
 ) : ViewModel() {
 
-    private companion object {
-        const val TAG = "PlayerViewModel"
-    }
-
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<PlayerEvent> = _events.asSharedFlow()
 
@@ -333,3 +329,5 @@ class PlayerViewModel(
         super.onCleared()
     }
 }
+
+private const val TAG = "PlayerViewModel"
