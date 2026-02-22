@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import android.util.Log
+import java.util.concurrent.ConcurrentHashMap
 
 data class PlayerState(
     val isPlaying: Boolean = false,
@@ -55,6 +57,10 @@ sealed interface PlaybackError {
  */
 class PlaybackController(private val context: Context) {
 
+    private companion object {
+        const val TAG = "PlaybackController"
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
     private var isConnecting = false
@@ -65,6 +71,9 @@ class PlaybackController(private val context: Context) {
     
     // Prevent state updates while loading new playlist to avoid flickering
     private var isLoadingPlaylist = false
+    
+    // Store the last known state for each book to prevent race conditions during book switches
+    private val bookStateSnapshots = ConcurrentHashMap<Long, PlayerState>()
 
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
@@ -234,6 +243,74 @@ class PlaybackController(private val context: Context) {
     fun unlockStateUpdates() {
         // State will auto-unlock when Media3 reaches STATE_READY (see onPlaybackStateChanged)
         // This method is kept for API compatibility but does nothing
+    }
+    
+    /**
+     * Captures the current playback state for the active book.
+     * Should be called before switching to a different book to preserve the current book's final state.
+     * This prevents race conditions where a new book's initial state overwrites the previous book's state.
+     */
+    fun captureCurrentBookState() {
+        val currentId = _currentBookId.value
+        if (currentId == null) {
+            Log.d(TAG, "captureCurrentBookState: No active book, skipping snapshot")
+            return
+        }
+        
+        val currentState = _playerState.value.copy()
+        bookStateSnapshots[currentId] = currentState
+        
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Captured state for book $currentId: " +
+                "position=${currentState.currentPositionMs}ms, " +
+                "track=${currentState.currentMediaItemIndex}, " +
+                "speed=${currentState.playbackSpeed}x")
+        }
+    }
+    
+    /**
+     * Updates the snapshot for a specific book with new state.
+     * Called continuously during playback to ensure snapshot is always current.
+     * 
+     * @param bookId The ID of the book to update
+     * @param state The new state to store
+     */
+    fun updateBookSnapshot(bookId: Long, state: PlayerState) {
+        bookStateSnapshots[bookId] = state.copy()
+    }
+    
+    /**
+     * Retrieves a previously captured state snapshot for a specific book.
+     * Returns null if no snapshot exists (e.g., first time playing the book).
+     * 
+     * @param bookId The ID of the book to retrieve the snapshot for
+     * @return The captured PlayerState, or null if no snapshot exists
+     */
+    fun getBookSnapshot(bookId: Long): PlayerState? {
+        val snapshot = bookStateSnapshots[bookId]
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            if (snapshot != null) {
+                Log.d(TAG, "Retrieved snapshot for book $bookId: " +
+                    "position=${snapshot.currentPositionMs}ms, " +
+                    "track=${snapshot.currentMediaItemIndex}")
+            } else {
+                Log.d(TAG, "No snapshot found for book $bookId")
+            }
+        }
+        return snapshot
+    }
+    
+    /**
+     * Removes snapshots for books that are no longer available.
+     * Call this periodically to prevent unbounded memory growth.
+     * 
+     * @param activeBookIds Set of currently available book IDs
+     */
+    fun cleanupOldSnapshots(activeBookIds: Set<Long>) {
+        val removedCount = bookStateSnapshots.keys.retainAll(activeBookIds)
+        if (removedCount && Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Cleaned up snapshots, ${bookStateSnapshots.size} remaining")
+        }
     }
 
     fun setSpeed(speed: Float) {

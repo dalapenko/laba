@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import android.util.Log
 
 sealed interface PlayerEvent {
     data object ClosePlayer : PlayerEvent
@@ -40,6 +41,10 @@ class PlayerViewModel(
     private val repository: BookRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
+
+    private companion object {
+        const val TAG = "PlayerViewModel"
+    }
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<PlayerEvent> = _events.asSharedFlow()
@@ -112,9 +117,20 @@ class PlayerViewModel(
     }
 
     private suspend fun setupPlaylist(book: BookEntity, tracks: List<TrackEntity>) {
+        // Capture the current book's state before switching to prevent race conditions
+        // This ensures we save the correct final position even if state updates arrive late
+        playbackController.captureCurrentBookState()
+        
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Setting up playlist for book $bookId (${book.title})")
+        }
+        
         // Book is already loaded in the player (e.g. user navigated back and reopened it).
         // Don't reset the playlist or touch playback state — just let the UI reflect what's playing.
-        if (playbackController.currentBookId.value == bookId) return
+        if (playbackController.currentBookId.value == bookId) {
+            Log.d(TAG, "Book $bookId is already loaded, skipping playlist setup")
+            return
+        }
 
         // Build and set the playlist
         val items = tracks.map { track ->
@@ -161,7 +177,32 @@ class PlayerViewModel(
     private fun collectPlayerState() {
         viewModelScope.launch {
             playbackController.playerState.collect { state ->
+                // Guard 1: Only accept states when this book is the active book
+                if (playbackController.currentBookId.value != bookId) {
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Ignoring state update - different book is active " +
+                            "(current=${playbackController.currentBookId.value}, this=$bookId)")
+                    }
+                    return@collect
+                }
+                
+                // Guard 2: Validate track index is within our track range
+                // This catches race conditions where currentBookId hasn't updated yet
+                val tracks = _uiState.value.tracks
+                if (tracks.isNotEmpty() && state.currentMediaItemIndex >= tracks.size) {
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Ignoring state update - track index ${state.currentMediaItemIndex} " +
+                            "exceeds our track count ${tracks.size}")
+                    }
+                    return@collect
+                }
+                
                 _uiState.value = _uiState.value.copy(playerState = state)
+                
+                // Continuously update snapshot to ensure we always have the latest state
+                // This protects against race conditions even if switching happens mid-update
+                playbackController.updateBookSnapshot(bookId, state)
+                
                 checkCompletion(state)
             }
         }
@@ -215,8 +256,20 @@ class PlayerViewModel(
     }
 
     private fun saveProgressInternal(forceCompleted: Boolean = false) {
-        val state = playbackController.playerState.value
+        // ALWAYS use snapshot if available (continuously updated by collectPlayerState)
+        // Fall back to local _uiState.playerState (never use global playbackController.playerState)
+        val snapshot = playbackController.getBookSnapshot(bookId)
+        val state = snapshot ?: _uiState.value.playerState
         val tracks = _uiState.value.tracks
+        
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            val source = if (snapshot != null) "snapshot" else "local UI state"
+            Log.d(TAG, "Saving progress for book $bookId from $source: " +
+                "position=${state.currentPositionMs}ms, " +
+                "track=${state.currentMediaItemIndex}, " +
+                "forceCompleted=$forceCompleted")
+        }
+        
         if (tracks.isEmpty()) return
 
         val currentIndex = state.currentMediaItemIndex.coerceIn(0, tracks.lastIndex)
@@ -243,6 +296,11 @@ class PlayerViewModel(
                     playbackSpeed = state.playbackSpeed,
                 )
             )
+            
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Progress saved to database for book $bookId: " +
+                    "position=${state.currentPositionMs}ms, trackId=${currentTrack.id}")
+            }
         }
     }
 
@@ -268,7 +326,10 @@ class PlayerViewModel(
     }
 
     override fun onCleared() {
-        super.onCleared()
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "ViewModel cleared for book $bookId, saving final progress")
+        }
         saveProgressInternal()
+        super.onCleared()
     }
 }
