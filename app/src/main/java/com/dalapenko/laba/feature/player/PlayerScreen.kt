@@ -19,6 +19,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Forward10
+import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
@@ -217,7 +219,19 @@ fun PlayerScreen(
                         )
                     }
 
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = { viewModel.seekBack() },
+                    ) {
+                        Icon(
+                            Icons.Default.Replay10,
+                            contentDescription = "Rewind 10 seconds",
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+
+                    Spacer(Modifier.width(8.dp))
 
                     FilledIconButton(
                         onClick = { viewModel.togglePlayPause() },
@@ -230,7 +244,19 @@ fun PlayerScreen(
                         )
                     }
 
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = { viewModel.seekForward() },
+                    ) {
+                        Icon(
+                            Icons.Default.Forward10,
+                            contentDescription = "Forward 10 seconds",
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+
+                    Spacer(Modifier.width(8.dp))
 
                     IconButton(
                         onClick = {

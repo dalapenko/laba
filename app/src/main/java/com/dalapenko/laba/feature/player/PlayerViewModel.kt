@@ -189,6 +189,14 @@ class PlayerViewModel(
         playbackController.seekTo(positionMs)
     }
 
+    fun seekBack() {
+        playbackController.seekBack()
+    }
+
+    fun seekForward() {
+        playbackController.seekForward()
+    }
+
     fun skipToTrack(index: Int) {
         playbackController.seekToTrack(index)
     }

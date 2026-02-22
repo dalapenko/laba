@@ -172,6 +172,16 @@ class PlaybackController(private val context: Context) {
         updateState()
     }
 
+    fun seekBack() {
+        controller?.seekBack()
+        updateState()
+    }
+
+    fun seekForward() {
+        controller?.seekForward()
+        updateState()
+    }
+
     fun seekToTrack(index: Int, positionMs: Long = 0L) {
         controller?.seekTo(index, positionMs)
         // State will auto-unlock when Media3 reaches STATE_READY (see listener)
