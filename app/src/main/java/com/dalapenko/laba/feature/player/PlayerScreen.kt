@@ -208,9 +208,8 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     IconButton(
-                        onClick = {
-                            if (currentTrackIndex > 0) viewModel.skipToTrack(currentTrackIndex - 1)
-                        },
+                        enabled = uiState.tracks.size > 1 && currentTrackIndex > 0,
+                        onClick = { viewModel.skipToTrack(currentTrackIndex - 1) },
                     ) {
                         Icon(
                             Icons.Default.SkipPrevious,
@@ -259,11 +258,8 @@ fun PlayerScreen(
                     Spacer(Modifier.width(8.dp))
 
                     IconButton(
-                        onClick = {
-                            if (currentTrackIndex < uiState.tracks.lastIndex) {
-                                viewModel.skipToTrack(currentTrackIndex + 1)
-                            }
-                        },
+                        enabled = uiState.tracks.size > 1 && currentTrackIndex < uiState.tracks.lastIndex,
+                        onClick = { viewModel.skipToTrack(currentTrackIndex + 1) },
                     ) {
                         Icon(
                             Icons.Default.SkipNext,
