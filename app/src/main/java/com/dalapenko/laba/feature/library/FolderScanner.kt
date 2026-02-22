@@ -192,6 +192,22 @@ class FolderScanner(private val context: Context) {
         if (parsed.scheme == "file") parsed.path?.let { File(it).delete() }
     }
 
+    suspend fun deleteBookFiles(rootFolderUri: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val uri = rootFolderUri.toUri()
+            val doc = if (isTreeUri(uri)) {
+                DocumentFile.fromTreeUri(context, uri)
+            } else {
+                DocumentFile.fromSingleUri(context, uri)
+            }
+            doc?.delete() == true
+        } catch (_: SecurityException) {
+            false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     // ── Entity conversion ─────────────────────────────────────────────────────
 
     fun toBookEntity(scanned: ScannedBook): BookEntity = BookEntity(

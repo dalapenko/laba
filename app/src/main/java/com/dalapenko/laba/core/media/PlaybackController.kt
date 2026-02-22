@@ -169,7 +169,10 @@ class PlaybackController(private val context: Context) {
     }
 
     fun stop() {
-        controller?.stop()
+        controller?.run {
+            stop()
+            clearMediaItems()
+        }
         _currentBookId.value = null
         updateState()
     }

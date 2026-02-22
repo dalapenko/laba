@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -105,6 +106,10 @@ fun LibraryScreen(
             when (event) {
                 LibraryEvent.FileNotAvailable ->
                     snackbarHostState.showSnackbar("File not available")
+                LibraryEvent.FilesDeletedSuccessfully ->
+                    snackbarHostState.showSnackbar("Book and files deleted")
+                LibraryEvent.FilesDeleteFailed ->
+                    snackbarHostState.showSnackbar("Removed from library. Could not delete files — re-add the book to grant permission.")
             }
         }
     }
@@ -216,16 +221,53 @@ fun LibraryScreen(
     }
 
     bookToDelete.value?.let { book ->
+        var deleteFiles by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { bookToDelete.value = null },
             title = { Text("Delete Book") },
-            text = { Text("Remove \"${book.book.title}\" from your library?") },
+            text = {
+                Column {
+                    Text("Remove \"${book.book.title}\" from your library?")
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { deleteFiles = !deleteFiles }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = deleteFiles,
+                            onCheckedChange = { deleteFiles = it },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Also delete files from device",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            if (deleteFiles) {
+                                Text(
+                                    text = "This action cannot be undone",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteBook(book)
+                    viewModel.deleteBook(book, deleteFiles)
                     bookToDelete.value = null
                 }) {
-                    Text("Delete")
+                    Text(
+                        text = "Delete",
+                        color = if (deleteFiles) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary,
+                    )
                 }
             },
             dismissButton = {

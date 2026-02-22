@@ -1,6 +1,7 @@
 package com.dalapenko.laba.feature.library
 
 import android.content.ContentResolver
+import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -181,10 +182,17 @@ class LibraryViewModel(
         viewModelScope.launch {
             _isScanning.value = true
             try {
-                contentResolver.takePersistableUriPermission(
-                    uri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (_: SecurityException) {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
                 val scanned = scanner.scanFolder(uri)
                 if (scanned == null || scanned.tracks.isEmpty()) {
                     _scanResult.value = ScanResult.Empty
@@ -206,10 +214,17 @@ class LibraryViewModel(
         viewModelScope.launch {
             _isScanning.value = true
             try {
-                contentResolver.takePersistableUriPermission(
-                    uri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (_: SecurityException) {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
                 val scanned = scanner.scanSingleFile(uri)
                 if (scanned == null) {
                     _scanResult.value = ScanResult.Empty
@@ -260,13 +275,21 @@ class LibraryViewModel(
 
     // ── Delete ────────────────────────────────────────────────────────────────
 
-    fun deleteBook(bookWithProgress: BookWithProgress) {
+    fun deleteBook(bookWithProgress: BookWithProgress, deleteFiles: Boolean = false) {
         viewModelScope.launch {
             if (playbackController.currentBookId.value == bookWithProgress.book.id) {
                 playbackController.stop()
             }
             repository.deleteBook(bookWithProgress.book)
             scanner.deleteCoverFile(bookWithProgress.book.coverUri)
+            if (deleteFiles) {
+                val deleted = scanner.deleteBookFiles(bookWithProgress.book.rootFolderUri)
+                if (deleted) {
+                    _events.tryEmit(LibraryEvent.FilesDeletedSuccessfully)
+                } else {
+                    _events.tryEmit(LibraryEvent.FilesDeleteFailed)
+                }
+            }
         }
     }
 
@@ -281,6 +304,8 @@ class LibraryViewModel(
 
 sealed interface LibraryEvent {
     data object FileNotAvailable : LibraryEvent
+    data object FilesDeletedSuccessfully : LibraryEvent
+    data object FilesDeleteFailed : LibraryEvent
 }
 
 sealed interface ScanResult {
