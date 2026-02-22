@@ -108,7 +108,7 @@ fun PlayerScreen(
             )
         },
     ) { padding ->
-        if (uiState.isLoading) {
+        if (uiState.isLoading || uiState.isInitializing) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

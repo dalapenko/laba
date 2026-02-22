@@ -31,6 +31,7 @@ data class PlayerUiState(
     val tracks: List<TrackEntity> = emptyList(),
     val playerState: PlayerState = PlayerState(),
     val isLoading: Boolean = true,
+    val isInitializing: Boolean = true,  // True until correct initial state is set
 )
 
 class PlayerViewModel(
@@ -61,15 +62,52 @@ class PlayerViewModel(
             val result = repository.getBookWithTracks(bookId)
             if (result != null) {
                 val (book, tracks) = result
+                
+                // Only set initial state if we're switching to a different book
+                // If same book is already playing, we keep its current state
+                if (playbackController.currentBookId.value != bookId) {
+                    setInitialStateForBook(tracks)
+                }
+                
+                // Mark as initialized and not loading
                 _uiState.value = _uiState.value.copy(
                     book = book,
                     tracks = tracks,
                     isLoading = false,
+                    isInitializing = false,
                 )
                 setupPlaylist(book, tracks)
             } else {
-                _uiState.value = _uiState.value.copy(isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isInitializing = false,
+                )
             }
+        }
+    }
+
+    private suspend fun setInitialStateForBook(tracks: List<TrackEntity>) {
+        val progress = repository.getProgress(bookId)
+        val targetTrackIndex = if (progress != null && !progress.isCompleted) {
+            tracks.indexOfFirst { it.id == progress.lastTrackId }.takeIf { it >= 0 }
+        } else null
+
+        if (targetTrackIndex != null && progress != null) {
+            val targetTrack = tracks[targetTrackIndex]
+            playbackController.setInitialState(
+                position = progress.lastPositionMs,
+                duration = targetTrack.durationMs,
+                trackIndex = targetTrackIndex,
+                speed = progress.playbackSpeed.coerceIn(0.5f, 2.0f)
+            )
+        } else {
+            val firstTrack = tracks.firstOrNull()
+            playbackController.setInitialState(
+                position = 0L,
+                duration = firstTrack?.durationMs ?: 0L,
+                trackIndex = 0,
+                speed = 1.0f
+            )
         }
     }
 
@@ -81,6 +119,7 @@ class PlayerViewModel(
         // Don't reset the playlist or touch playback state — just let the UI reflect what's playing.
         if (playbackController.currentBookId.value == bookId) return
 
+        // Build and set the playlist
         val items = tracks.map { track ->
             PlaylistItem(
                 uri = track.fileUri,
@@ -91,14 +130,22 @@ class PlayerViewModel(
         }
         playbackController.setPlaylist(items, bookId)
 
+        // Restore position and speed from saved progress
         val progress = repository.getProgress(bookId)
         if (progress != null && !progress.isCompleted) {
             val trackIndex = tracks.indexOfFirst { it.id == progress.lastTrackId }
             if (trackIndex >= 0) {
                 playbackController.seekToTrack(trackIndex, progress.lastPositionMs)
+            } else {
+                // Track not found, unlock state updates
+                playbackController.unlockStateUpdates()
             }
             playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
+        } else {
+            // No saved progress - unlock state updates to allow Media3 to take over
+            playbackController.unlockStateUpdates()
         }
+        
         if (autoPlay) playbackController.play()
     }
 

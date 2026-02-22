@@ -55,6 +55,9 @@ class PlaybackController(private val context: Context) {
     // Track consecutive errors to detect if entire book is unavailable
     private var consecutiveErrors = 0
     private var lastErrorTrackIndex = -1
+    
+    // Prevent state updates while loading new playlist to avoid flickering
+    private var isLoadingPlaylist = false
 
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
@@ -77,6 +80,11 @@ class PlaybackController(private val context: Context) {
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
+            // Auto-unlock when Media3 is ready (after prepare completes)
+            // This ensures we don't show intermediate states during loading
+            if (playbackState == Player.STATE_READY && isLoadingPlaylist) {
+                isLoadingPlaylist = false
+            }
             updateState()
         }
 
@@ -166,11 +174,25 @@ class PlaybackController(private val context: Context) {
 
     fun seekToTrack(index: Int, positionMs: Long = 0L) {
         controller?.seekTo(index, positionMs)
-        updateState()
+        // State will auto-unlock when Media3 reaches STATE_READY (see listener)
+    }
+
+    fun setInitialState(position: Long, duration: Long, trackIndex: Int, speed: Float) {
+        // Lock state updates to prevent Media3 from overwriting this
+        isLoadingPlaylist = true
+        _playerState.value = PlayerState(
+            currentPositionMs = position,
+            durationMs = duration,
+            currentMediaItemIndex = trackIndex,
+            playbackSpeed = speed,
+            isReady = false
+        )
     }
 
     fun setPlaylist(items: List<PlaylistItem>, bookId: Long) {
         _currentBookId.value = bookId
+        // Note: PlayerState should be set via setInitialState() before calling this
+        // Keep isLoadingPlaylist = true to prevent listener updates
         val mediaItems = items.map { item ->
             MediaItem.Builder()
                 .setUri(item.uri.toUri())
@@ -187,6 +209,11 @@ class PlaybackController(private val context: Context) {
             setMediaItems(mediaItems)
             prepare()
         }
+    }
+    
+    fun unlockStateUpdates() {
+        // State will auto-unlock when Media3 reaches STATE_READY (see onPlaybackStateChanged)
+        // This method is kept for API compatibility but does nothing
     }
 
     fun setSpeed(speed: Float) {
@@ -237,11 +264,16 @@ class PlaybackController(private val context: Context) {
     }
 
     private fun updateState() {
+        // Don't update state from MediaController while we're setting up a new playlist
+        // This prevents flickering from initial state -> media3 default -> correct state
+        if (isLoadingPlaylist) return
+        
         val c = controller ?: return
+        val duration = c.duration.coerceAtLeast(0)
         _playerState.value = PlayerState(
             isPlaying = c.isPlaying,
-            currentPositionMs = c.currentPosition,
-            durationMs = c.duration.coerceAtLeast(0),
+            currentPositionMs = if (duration > 0) c.currentPosition else 0L,
+            durationMs = duration,
             currentMediaItemIndex = c.currentMediaItemIndex,
             playbackSpeed = c.playbackParameters.speed,
             isReady = c.playbackState == Player.STATE_READY || c.playbackState == Player.STATE_BUFFERING,
