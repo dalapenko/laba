@@ -40,6 +40,7 @@ class PlayerViewModel(
     private val autoPlay: Boolean,
     private val repository: BookRepository,
     private val playbackController: PlaybackController,
+    private val autoSaveIntervalMs: Long = 5_000L,  // Configurable for testing
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
@@ -215,10 +216,15 @@ class PlayerViewModel(
     }
 
     private fun startProgressAutoSave() {
+        // Skip auto-save if interval is 0 or negative (for testing)
+        if (autoSaveIntervalMs <= 0) return
+        
         viewModelScope.launch {
             while (true) {
-                delay(5_000)
-                if (_uiState.value.tracks.isNotEmpty()) saveProgressInternal()
+                delay(autoSaveIntervalMs)
+                if (_uiState.value.tracks.isNotEmpty()) {
+                    saveProgressInternal()
+                }
             }
         }
     }
