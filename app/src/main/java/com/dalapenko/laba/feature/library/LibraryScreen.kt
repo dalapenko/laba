@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -78,6 +80,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun LibraryScreen(
     onBookClick: (Long) -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: LibraryViewModel = koinViewModel(),
 ) {
     val books by viewModel.books.collectAsStateWithLifecycle()
@@ -143,6 +146,14 @@ fun LibraryScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 scrollBehavior = scrollBehavior,
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.cd_settings),
+                        )
+                    }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },

@@ -56,4 +56,25 @@
     <string name="notification_forward_10">Перемотать на 10 секунд вперёд</string>
 
     <string name="fallback_track_name">Трек %1$d</string>
+
+    <!-- Library Screen — settings -->
+    <string name="cd_settings">Настройки</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_section_general">Основные</string>
+    <string name="settings_appearance">Оформление</string>
+    <string name="settings_appearance_value">Системная тема</string>
+    <string name="settings_language">Язык приложения</string>
+    <string name="settings_language_value">Системный</string>
+    <string name="settings_section_about">О приложении</string>
+    <string name="settings_version">Версия</string>
+    <string name="settings_version_value">%1$s (%2$d)</string>
+    <string name="settings_author">Автор</string>
+    <string name="settings_github">Исходный код</string>
+    <string name="settings_licenses">Лицензии открытого ПО</string>
+    <string name="settings_licenses_description">Сторонние библиотеки, используемые в приложении</string>
+    <string name="settings_third_party_section">Сторонние библиотеки</string>
+    <string name="settings_licenses_text">- Jetpack Compose (Apache 2.0)\n- Koin (Apache 2.0)\n- Media3 / ExoPlayer (Apache 2.0)\n- Room (Apache 2.0)\n- Coil (Apache 2.0)\n- Kotlin &amp; Kotlinx (Apache 2.0)\n\nhttps://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="settings_licenses_close">Закрыть</string>
 </resources>

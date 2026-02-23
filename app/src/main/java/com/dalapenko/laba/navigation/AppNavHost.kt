@@ -1,7 +1,11 @@
 package com.dalapenko.laba.navigation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
@@ -11,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.dalapenko.laba.feature.library.LibraryScreen
 import com.dalapenko.laba.feature.player.PlayerScreen
+import com.dalapenko.laba.feature.settings.SettingsScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController) {
@@ -20,6 +25,19 @@ fun AppNavHost(navController: NavHostController) {
                 onBookClick = { bookId ->
                     navController.navigate(Player(bookId))
                 },
+                onSettingsClick = {
+                    navController.navigate(Settings)
+                },
+            )
+        }
+        composable<Settings>(
+            enterTransition = { slideInHorizontally(tween(380, easing = FastOutSlowInEasing)) { it } },
+            exitTransition = { slideOutHorizontally(tween(380, easing = FastOutSlowInEasing)) { it } },
+            popEnterTransition = { slideInHorizontally(tween(380, easing = FastOutSlowInEasing)) { -it } },
+            popExitTransition = { slideOutHorizontally(tween(380, easing = FastOutSlowInEasing)) { it } },
+        ) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
             )
         }
         composable<Player>(

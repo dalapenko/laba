@@ -72,4 +72,28 @@
 
     <!-- PlayerViewModel — fallback track name (resolved in PlayerScreen) -->
     <string name="fallback_track_name">Track %1$d</string>
+
+    <!-- Library Screen — settings -->
+    <string name="cd_settings">Settings</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_value">System default</string>
+    <string name="settings_language">App Language</string>
+    <string name="settings_language_value">System default</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_version_value">%1$s (%2$d)</string>
+    <string name="settings_author">Author</string>
+    <string name="settings_author_value" translatable="false">dalapenko</string>
+    <string name="settings_github">Source Code</string>
+    <string name="settings_licenses">Open Source Licenses</string>
+    <string name="settings_licenses_description">Third-party libraries used in this app</string>
+    <string name="settings_app_license_section" translatable="false">LABA — MIT License</string>
+    <string name="settings_app_license_text" translatable="false">Copyright (c) 2025 dalapenko\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
+    <string name="settings_third_party_section">Third-party Libraries</string>
+    <string name="settings_licenses_text">- Jetpack Compose (Apache 2.0)\n- Koin (Apache 2.0)\n- Media3 / ExoPlayer (Apache 2.0)\n- Room (Apache 2.0)\n- Coil (Apache 2.0)\n- Kotlin &amp; Kotlinx (Apache 2.0)\n\nhttps://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="settings_licenses_close">Close</string>
 </resources>
