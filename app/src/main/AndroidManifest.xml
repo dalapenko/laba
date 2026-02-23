@@ -15,8 +15,10 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Laba">
+        android:theme="@style/Theme.Laba"
+        tools:ignore="UnusedAttribute">
 
         <activity
             android:name=".MainActivity"

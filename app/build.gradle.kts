@@ -18,6 +18,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        @Suppress("UnstableApiUsage")
+        androidResources.localeFilters.addAll(setOf("en", "ru"))
     }
 
     buildTypes {

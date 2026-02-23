@@ -49,11 +49,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.dalapenko.laba.R
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.util.Locale
@@ -69,14 +71,18 @@ fun PlayerScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val fallbackTrackNameTemplate = stringResource(R.string.fallback_track_name)
+    val trackUnavailableTemplate = stringResource(R.string.snackbar_track_unavailable)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 PlayerEvent.ClosePlayer -> onBack()
                 is PlayerEvent.TrackUnavailable -> {
+                    val name = event.trackName
+                        ?: String.format(fallbackTrackNameTemplate, event.trackIndex + 1)
                     snackbarHostState.showSnackbar(
-                        message = "Track unavailable: ${event.trackName}",
+                        message = String.format(trackUnavailableTemplate, name),
                         duration = SnackbarDuration.Short
                     )
                 }
@@ -99,12 +105,12 @@ fun PlayerScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showChapters.value = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Show chapters")
+                        Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = stringResource(R.string.cd_show_chapters))
                     }
                 },
             )
@@ -168,6 +174,7 @@ fun PlayerScreen(
                 var isSeeking by remember { mutableStateOf(false) }
                 var seekPosition by remember { mutableFloatStateOf(0f) }
 
+                val playbackPositionDesc = stringResource(R.string.cd_playback_position)
                 Slider(
                     value = if (isSeeking) seekPosition else position,
                     onValueChange = {
@@ -182,7 +189,7 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics {
-                            contentDescription = "Playback position"
+                            contentDescription = playbackPositionDesc
                         },
                 )
 
@@ -213,7 +220,7 @@ fun PlayerScreen(
                     ) {
                         Icon(
                             Icons.Default.SkipPrevious,
-                            contentDescription = "Previous chapter",
+                            contentDescription = stringResource(R.string.cd_previous_chapter),
                             modifier = Modifier.size(36.dp),
                         )
                     }
@@ -225,7 +232,7 @@ fun PlayerScreen(
                     ) {
                         Icon(
                             Icons.Default.Replay10,
-                            contentDescription = "Rewind 10 seconds",
+                            contentDescription = stringResource(R.string.cd_rewind_10),
                             modifier = Modifier.size(36.dp),
                         )
                     }
@@ -238,7 +245,7 @@ fun PlayerScreen(
                     ) {
                         Icon(
                             imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (playerState.isPlaying) "Pause" else "Play",
+                            contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play),
                             modifier = Modifier.size(36.dp),
                         )
                     }
@@ -250,7 +257,7 @@ fun PlayerScreen(
                     ) {
                         Icon(
                             Icons.Default.Forward10,
-                            contentDescription = "Forward 10 seconds",
+                            contentDescription = stringResource(R.string.cd_forward_10),
                             modifier = Modifier.size(36.dp),
                         )
                     }
@@ -263,7 +270,7 @@ fun PlayerScreen(
                     ) {
                         Icon(
                             Icons.Default.SkipNext,
-                            contentDescription = "Next chapter",
+                            contentDescription = stringResource(R.string.cd_next_chapter),
                             modifier = Modifier.size(36.dp),
                         )
                     }
@@ -301,7 +308,7 @@ private fun CoverArt(
     if (coverUri != null) {
         AsyncImage(
             model = coverUri,
-            contentDescription = "Cover art for $title",
+            contentDescription = stringResource(R.string.cd_cover_art_for, title),
             modifier = modifier.clip(RoundedCornerShape(16.dp)),
             contentScale = ContentScale.Crop,
         )
@@ -334,6 +341,7 @@ private fun SpeedControl(
             text = String.format(Locale.ENGLISH, "%.2f×", currentSpeed),
             style = MaterialTheme.typography.titleMedium,
         )
+        val playbackSpeedDesc = stringResource(R.string.cd_playback_speed)
         Slider(
             value = currentSpeed,
             onValueChange = { raw ->
@@ -344,19 +352,19 @@ private fun SpeedControl(
             steps = 29,
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "Playback speed" },
+                .semantics { contentDescription = playbackSpeedDesc },
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "0.5×",
+                text = stringResource(R.string.speed_min),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "2.0×",
+                text = stringResource(R.string.speed_max),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

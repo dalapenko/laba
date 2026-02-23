@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="snackbar_file_not_available">Файл недоступен</string>
+    <string name="snackbar_book_and_files_deleted">Книга и файлы удалены</string>
+    <string name="snackbar_removed_from_library_no_delete">Удалена из библиотеки. Не удалось удалить файлы — добавьте книгу снова для получения разрешения.</string>
+    <string name="snackbar_no_audio_files">Аудиофайлы не найдены</string>
+    <string name="snackbar_permission_denied">Доступ запрещён. Выберите папку повторно.</string>
+    <string name="snackbar_added_single">Добавлена: %1$s</string>
+    <string name="snackbar_already_in_library">Уже в библиотеке</string>
+    <plurals name="snackbar_added_books">
+        <item quantity="one">Добавлена %1$d книга</item>
+        <item quantity="few">Добавлены %1$d книги</item>
+        <item quantity="many">Добавлено %1$d книг</item>
+        <item quantity="other">Добавлено %1$d книг</item>
+    </plurals>
+
+    <string name="cd_add_audiobook">Добавить аудиокнигу</string>
+    <string name="menu_add_folder">Добавить папку</string>
+    <string name="menu_add_file">Добавить файл</string>
+
+    <string name="empty_library_title">Ваша библиотека пуста</string>
+    <string name="empty_library_subtitle">Нажмите +, чтобы добавить папку или файл с аудиокнигой</string>
+
+    <string name="dialog_delete_title">Удалить книгу</string>
+    <string name="dialog_delete_message">Удалить \"%1$s\" из библиотеки?</string>
+    <string name="dialog_delete_also_files">Также удалить файлы с устройства</string>
+    <string name="dialog_delete_irreversible">Это действие нельзя отменить</string>
+    <string name="dialog_delete_confirm">Удалить</string>
+    <string name="dialog_delete_cancel">Отмена</string>
+
+    <string name="chip_completed">Прослушана</string>
+    <string name="progress_percent">%1$d%% прослушано</string>
+    <string name="cd_cover_for">Обложка: %1$s</string>
+    <string name="cd_playing">Воспроизводится</string>
+    <string name="cd_paused">На паузе</string>
+
+    <string name="snackbar_track_unavailable">Трек недоступен: %1$s</string>
+    <string name="cd_back">Назад</string>
+    <string name="cd_show_chapters">Показать главы</string>
+    <string name="cd_cover_art_for">Обложка: %1$s</string>
+
+    <string name="cd_previous_chapter">Предыдущая глава</string>
+    <string name="cd_rewind_10">Перемотать на 10 секунд назад</string>
+    <string name="cd_pause">Пауза</string>
+    <string name="cd_play">Воспроизвести</string>
+    <string name="cd_forward_10">Перемотать на 10 секунд вперёд</string>
+    <string name="cd_next_chapter">Следующая глава</string>
+
+    <string name="cd_playback_position">Позиция воспроизведения</string>
+    <string name="cd_playback_speed">Скорость воспроизведения</string>
+
+    <string name="chapters_title">Главы</string>
+    <string name="cd_currently_playing">Сейчас воспроизводится</string>
+
+    <string name="notification_rewind_10">Перемотать на 10 секунд назад</string>
+    <string name="notification_forward_10">Перемотать на 10 секунд вперёд</string>
+
+    <string name="fallback_track_name">Трек %1$d</string>
+</resources>

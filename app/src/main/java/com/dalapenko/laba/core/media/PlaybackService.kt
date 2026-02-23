@@ -15,6 +15,7 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.dalapenko.laba.MainActivity
+import com.dalapenko.laba.R
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -66,7 +67,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     @OptIn(UnstableApi::class)
-    private class PlaybackSessionCallback : MediaSession.Callback {
+    private inner class PlaybackSessionCallback : MediaSession.Callback {
 
         override fun onConnect(
             session: MediaSession,
@@ -88,11 +89,11 @@ class PlaybackService : MediaSessionService() {
                 val mediaButtonPreferences = ImmutableList.of(
                     CommandButton.Builder(CommandButton.ICON_SKIP_BACK_10)
                         .setSessionCommand(SessionCommand(ACTION_SEEK_BACK, Bundle.EMPTY))
-                        .setDisplayName("Rewind 10 seconds")
+                        .setDisplayName(getString(R.string.notification_rewind_10))
                         .build(),
                     CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_10)
                         .setSessionCommand(SessionCommand(ACTION_SEEK_FORWARD, Bundle.EMPTY))
-                        .setDisplayName("Forward 10 seconds")
+                        .setDisplayName(getString(R.string.notification_forward_10))
                         .build(),
                 )
 

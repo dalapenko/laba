@@ -66,9 +66,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.dalapenko.laba.R
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -85,6 +88,19 @@ fun LibraryScreen(
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val msgFileNotAvailable = stringResource(R.string.snackbar_file_not_available)
+    val msgFilesDeleted = stringResource(R.string.snackbar_book_and_files_deleted)
+    val msgFilesDeleteFailed = stringResource(R.string.snackbar_removed_from_library_no_delete)
+    val scanResultMessage: String? = when (val result = scanResult) {
+        is ScanResult.Success -> if (result.count == 1)
+            stringResource(R.string.snackbar_added_single, result.title)
+        else
+            pluralStringResource(R.plurals.snackbar_added_books, result.count, result.count)
+        is ScanResult.Empty -> stringResource(R.string.snackbar_no_audio_files)
+        is ScanResult.PermissionError -> stringResource(R.string.snackbar_permission_denied)
+        is ScanResult.Duplicate -> stringResource(R.string.snackbar_already_in_library)
+        null -> null
+    }
     var showFabMenu by remember { mutableStateOf(false) }
     val bookToDelete = remember { mutableStateOf<BookWithProgress?>(null) }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -105,36 +121,19 @@ fun LibraryScreen(
         viewModel.events.collect { event ->
             when (event) {
                 LibraryEvent.FileNotAvailable ->
-                    snackbarHostState.showSnackbar("File not available")
+                    snackbarHostState.showSnackbar(msgFileNotAvailable)
                 LibraryEvent.FilesDeletedSuccessfully ->
-                    snackbarHostState.showSnackbar("Book and files deleted")
+                    snackbarHostState.showSnackbar(msgFilesDeleted)
                 LibraryEvent.FilesDeleteFailed ->
-                    snackbarHostState.showSnackbar("Removed from library. Could not delete files — re-add the book to grant permission.")
+                    snackbarHostState.showSnackbar(msgFilesDeleteFailed)
             }
         }
     }
 
-    LaunchedEffect(scanResult) {
-        when (val result = scanResult) {
-            is ScanResult.Empty -> {
-                snackbarHostState.showSnackbar("No audio files found")
-                viewModel.clearScanResult()
-            }
-            is ScanResult.PermissionError -> {
-                snackbarHostState.showSnackbar("Permission denied. Please re-pick the folder.")
-                viewModel.clearScanResult()
-            }
-            is ScanResult.Success -> {
-                val msg = if (result.count == 1) "Added: ${result.title}"
-                    else "Added ${result.count} books"
-                snackbarHostState.showSnackbar(msg)
-                viewModel.clearScanResult()
-            }
-            is ScanResult.Duplicate -> {
-                snackbarHostState.showSnackbar("Already in library")
-                viewModel.clearScanResult()
-            }
-            null -> {}
+    LaunchedEffect(scanResultMessage) {
+        if (scanResultMessage != null) {
+            snackbarHostState.showSnackbar(scanResultMessage)
+            viewModel.clearScanResult()
         }
     }
 
@@ -142,7 +141,7 @@ fun LibraryScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("LABA") },
+                title = { Text(stringResource(R.string.app_name)) },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -152,14 +151,14 @@ fun LibraryScreen(
                 FloatingActionButton(
                     onClick = { showFabMenu = true },
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add audiobook")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_audiobook))
                 }
                 DropdownMenu(
                     expanded = showFabMenu,
                     onDismissRequest = { showFabMenu = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Add Folder") },
+                        text = { Text(stringResource(R.string.menu_add_folder)) },
                         leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
                         onClick = {
                             showFabMenu = false
@@ -167,7 +166,7 @@ fun LibraryScreen(
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Add File") },
+                        text = { Text(stringResource(R.string.menu_add_file)) },
                         leadingIcon = { Icon(Icons.Default.AudioFile, contentDescription = null) },
                         onClick = {
                             showFabMenu = false
@@ -230,10 +229,10 @@ fun LibraryScreen(
         var deleteFiles by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { bookToDelete.value = null },
-            title = { Text("Delete Book") },
+            title = { Text(stringResource(R.string.dialog_delete_title)) },
             text = {
                 Column {
-                    Text("Remove \"${book.book.title}\" from your library?")
+                    Text(stringResource(R.string.dialog_delete_message, book.book.title))
                     Spacer(Modifier.height(16.dp))
                     Row(
                         modifier = Modifier
@@ -250,12 +249,12 @@ fun LibraryScreen(
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Also delete files from device",
+                                text = stringResource(R.string.dialog_delete_also_files),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             if (deleteFiles) {
                                 Text(
-                                    text = "This action cannot be undone",
+                                    text = stringResource(R.string.dialog_delete_irreversible),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -270,7 +269,7 @@ fun LibraryScreen(
                     bookToDelete.value = null
                 }) {
                     Text(
-                        text = "Delete",
+                        text = stringResource(R.string.dialog_delete_confirm),
                         color = if (deleteFiles) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.primary,
                     )
@@ -278,7 +277,7 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(onClick = { bookToDelete.value = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.dialog_delete_cancel))
                 }
             },
             icon = { Icon(Icons.Default.Delete, contentDescription = null) },
@@ -355,11 +354,11 @@ private fun BookCard(
                 if (isCompleted) {
                     AssistChip(
                         onClick = {},
-                        label = { Text("Completed") },
+                        label = { Text(stringResource(R.string.chip_completed)) },
                     )
                 } else {
                     Text(
-                        text = "${(fraction * 100).toInt()}% completed",
+                        text = stringResource(R.string.progress_percent, (fraction * 100).toInt()),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -383,7 +382,7 @@ private fun BookThumbnail(
         if (coverUri != null) {
             AsyncImage(
                 model = coverUri,
-                contentDescription = "Cover for $title",
+                contentDescription = stringResource(R.string.cd_cover_for, title),
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(shape),
@@ -419,7 +418,7 @@ private fun BookThumbnail(
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Playing" else "Paused",
+                    contentDescription = if (isPlaying) stringResource(R.string.cd_playing) else stringResource(R.string.cd_paused),
                     tint = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.size(32.dp),
                 )
@@ -442,12 +441,12 @@ private fun EmptyLibrary(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Your library is empty",
+            text = stringResource(R.string.empty_library_title),
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Tap + to add an audiobook folder or file",
+            text = stringResource(R.string.empty_library_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

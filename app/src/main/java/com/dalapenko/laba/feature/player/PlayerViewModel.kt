@@ -24,7 +24,7 @@ import android.util.Log
 
 sealed interface PlayerEvent {
     data object ClosePlayer : PlayerEvent
-    data class TrackUnavailable(val trackName: String) : PlayerEvent
+    data class TrackUnavailable(val trackName: String?, val trackIndex: Int) : PlayerEvent
 }
 
 data class PlayerUiState(
@@ -307,8 +307,8 @@ class PlayerViewModel(
                     is PlaybackError.TrackUnavailable -> {
                         // Get track name from the UI state
                         val trackName = _uiState.value.tracks
-                            .getOrNull(error.trackIndex)?.fileName ?: "Track ${error.trackIndex + 1}"
-                        _events.emit(PlayerEvent.TrackUnavailable(trackName))
+                            .getOrNull(error.trackIndex)?.fileName
+                        _events.emit(PlayerEvent.TrackUnavailable(trackName, error.trackIndex))
                     }
                     PlaybackError.BookUnavailable -> {
                         // All tracks unavailable or can't recover - mark book unavailable

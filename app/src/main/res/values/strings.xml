@@ -1,3 +1,75 @@
 <resources>
-    <string name="app_name">LABA</string>
+    <string name="app_name" translatable="false">LABA</string>
+
+    <!-- Library Screen — snackbars (via context.getString in LaunchedEffect) -->
+    <string name="snackbar_file_not_available">File not available</string>
+    <string name="snackbar_book_and_files_deleted">Book and files deleted</string>
+    <string name="snackbar_removed_from_library_no_delete">Removed from library. Could not delete files — re-add the book to grant permission.</string>
+    <string name="snackbar_no_audio_files">No audio files found</string>
+    <string name="snackbar_permission_denied">Permission denied. Please re-pick the folder.</string>
+    <string name="snackbar_added_single">Added: %1$s</string>
+    <string name="snackbar_already_in_library">Already in library</string>
+    <plurals name="snackbar_added_books">
+        <item quantity="one">Added %1$d book</item>
+        <item quantity="other">Added %1$d books</item>
+    </plurals>
+
+    <!-- Library Screen — FAB & menu -->
+    <string name="cd_add_audiobook">Add audiobook</string>
+    <string name="menu_add_folder">Add Folder</string>
+    <string name="menu_add_file">Add File</string>
+
+    <!-- Library Screen — empty state -->
+    <string name="empty_library_title">Your library is empty</string>
+    <string name="empty_library_subtitle">Tap + to add an audiobook folder or file</string>
+
+    <!-- Library Screen — delete dialog -->
+    <string name="dialog_delete_title">Delete Book</string>
+    <string name="dialog_delete_message">Remove \"%1$s\" from your library?</string>
+    <string name="dialog_delete_also_files">Also delete files from device</string>
+    <string name="dialog_delete_irreversible">This action cannot be undone</string>
+    <string name="dialog_delete_confirm">Delete</string>
+    <string name="dialog_delete_cancel">Cancel</string>
+
+    <!-- Library Screen — book card -->
+    <string name="chip_completed">Completed</string>
+    <string name="progress_percent">%1$d%% completed</string>
+    <string name="cd_cover_for">Cover for %1$s</string>
+    <string name="cd_playing">Playing</string>
+    <string name="cd_paused">Paused</string>
+
+    <!-- Player Screen — snackbar -->
+    <string name="snackbar_track_unavailable">Track unavailable: %1$s</string>
+
+    <!-- Player Screen — navigation -->
+    <string name="cd_back">Back</string>
+    <string name="cd_show_chapters">Show chapters</string>
+
+    <!-- Player Screen — cover -->
+    <string name="cd_cover_art_for">Cover art for %1$s</string>
+
+    <!-- Player Screen — transport controls -->
+    <string name="cd_previous_chapter">Previous chapter</string>
+    <string name="cd_rewind_10">Rewind 10 seconds</string>
+    <string name="cd_pause">Pause</string>
+    <string name="cd_play">Play</string>
+    <string name="cd_forward_10">Forward 10 seconds</string>
+    <string name="cd_next_chapter">Next chapter</string>
+
+    <!-- Player Screen — seek bar & speed -->
+    <string name="cd_playback_position">Playback position</string>
+    <string name="cd_playback_speed">Playback speed</string>
+    <string name="speed_min" translatable="false">0.5\u00D7</string>
+    <string name="speed_max" translatable="false">2.0\u00D7</string>
+
+    <!-- Chapter Bottom Sheet -->
+    <string name="chapters_title">Chapters</string>
+    <string name="cd_currently_playing">Currently playing</string>
+
+    <!-- PlaybackService — notification buttons -->
+    <string name="notification_rewind_10">Rewind 10 seconds</string>
+    <string name="notification_forward_10">Forward 10 seconds</string>
+
+    <!-- PlayerViewModel — fallback track name (resolved in PlayerScreen) -->
+    <string name="fallback_track_name">Track %1$d</string>
 </resources>
