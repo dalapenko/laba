@@ -19,12 +19,10 @@ import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -253,7 +251,7 @@ class PlayerViewModelTest {
         val tracks = listOf(testTrack(id = 10L, bookId = bookId, durationMs = 60_000L))
         coEvery { mockRepository.getBookWithTracks(bookId) } returns (book to tracks)
         currentBookIdFlow.value = bookId
-        val vm = createViewModel()
+        createViewModel()
         advanceUntilIdle()
 
         // Last track (index 0 == lastIndex), near end (59500 >= 60000 - 1000 = 59000), not playing

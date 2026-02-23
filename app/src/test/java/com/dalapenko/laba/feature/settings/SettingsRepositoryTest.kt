@@ -1,10 +1,8 @@
 package com.dalapenko.laba.feature.settings
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.cash.turbine.test
 import kotlinx.coroutines.flow.Flow
