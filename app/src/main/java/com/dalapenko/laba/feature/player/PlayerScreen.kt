@@ -1,5 +1,6 @@
 package com.dalapenko.laba.feature.player
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,19 +8,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
@@ -47,9 +51,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,6 +96,7 @@ fun PlayerScreen(
     }
 
     val showChapters = remember { mutableStateOf(false) }
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -129,162 +135,308 @@ fun PlayerScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Spacer(Modifier.height(24.dp))
+            val currentTrackIndex = playerState.currentMediaItemIndex
+                .coerceIn(0, uiState.tracks.lastIndex.coerceAtLeast(0))
+            val currentTrack = uiState.tracks.getOrNull(currentTrackIndex)
+            val position = playerState.currentPositionMs.toFloat()
+            val duration = playerState.durationMs.toFloat().coerceAtLeast(1f)
+            var isSeeking by remember { mutableStateOf(false) }
+            var seekPosition by remember { mutableFloatStateOf(0f) }
+            val playbackPositionDesc = stringResource(R.string.cd_playback_position)
 
-                CoverArt(
-                    coverUri = uiState.book?.coverUri,
-                    title = uiState.book?.title ?: "",
+            if (isLandscape) {
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .aspectRatio(1f),
-                )
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CoverArt(
+                        coverUri = uiState.book?.coverUri,
+                        title = uiState.book?.title ?: "",
+                        modifier = Modifier
+                            .fillMaxHeight(0.85f)
+                            .aspectRatio(1f),
+                    )
 
-                Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.width(20.dp))
 
-                Text(
-                    text = uiState.book?.title ?: "",
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = uiState.book?.title ?: "",
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
 
-                val currentTrackIndex = playerState.currentMediaItemIndex
-                    .coerceIn(0, uiState.tracks.lastIndex.coerceAtLeast(0))
-                val currentTrack = uiState.tracks.getOrNull(currentTrackIndex)
-                if (currentTrack != null) {
-                    Spacer(Modifier.height(4.dp))
+                        if (currentTrack != null) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = currentTrack.fileName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Slider(
+                            value = if (isSeeking) seekPosition else position,
+                            onValueChange = {
+                                isSeeking = true
+                                seekPosition = it
+                            },
+                            onValueChangeFinished = {
+                                viewModel.seekTo(seekPosition.toLong())
+                                isSeeking = false
+                            },
+                            valueRange = 0f..duration,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = playbackPositionDesc },
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            Text(
+                                text = formatTime(playerState.durationMs),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            IconButton(
+                                enabled = uiState.tracks.size > 1 && currentTrackIndex > 0,
+                                onClick = { viewModel.skipToTrack(currentTrackIndex - 1) },
+                            ) {
+                                Icon(
+                                    Icons.Default.SkipPrevious,
+                                    contentDescription = stringResource(R.string.cd_previous_chapter),
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+
+                            Spacer(Modifier.width(4.dp))
+
+                            IconButton(onClick = { viewModel.seekBack() }) {
+                                Icon(
+                                    Icons.Default.Replay10,
+                                    contentDescription = stringResource(R.string.cd_rewind_10),
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+
+                            Spacer(Modifier.width(4.dp))
+
+                            FilledIconButton(
+                                onClick = { viewModel.togglePlayPause() },
+                                modifier = Modifier.size(56.dp),
+                            ) {
+                                Icon(
+                                    imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play),
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+
+                            Spacer(Modifier.width(4.dp))
+
+                            IconButton(onClick = { viewModel.seekForward() }) {
+                                Icon(
+                                    Icons.Default.Forward10,
+                                    contentDescription = stringResource(R.string.cd_forward_10),
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+
+                            Spacer(Modifier.width(4.dp))
+
+                            IconButton(
+                                enabled = uiState.tracks.size > 1 && currentTrackIndex < uiState.tracks.lastIndex,
+                                onClick = { viewModel.skipToTrack(currentTrackIndex + 1) },
+                            ) {
+                                Icon(
+                                    Icons.Default.SkipNext,
+                                    contentDescription = stringResource(R.string.cd_next_chapter),
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        SpeedControl(
+                            currentSpeed = playerState.playbackSpeed,
+                            onSpeedChanged = { viewModel.setSpeed(it) },
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Spacer(Modifier.height(24.dp))
+
+                    CoverArt(
+                        coverUri = uiState.book?.coverUri,
+                        title = uiState.book?.title ?: "",
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .aspectRatio(1f),
+                    )
+
+                    Spacer(Modifier.height(24.dp))
+
                     Text(
-                        text = currentTrack.fileName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        text = uiState.book?.title ?: "",
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
 
-                Spacer(Modifier.height(32.dp))
+                    if (currentTrack != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = currentTrack.fileName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
 
-                val position = playerState.currentPositionMs.toFloat()
-                val duration = playerState.durationMs.toFloat().coerceAtLeast(1f)
-                var isSeeking by remember { mutableStateOf(false) }
-                var seekPosition by remember { mutableFloatStateOf(0f) }
+                    Spacer(Modifier.height(32.dp))
 
-                val playbackPositionDesc = stringResource(R.string.cd_playback_position)
-                Slider(
-                    value = if (isSeeking) seekPosition else position,
-                    onValueChange = {
-                        isSeeking = true
-                        seekPosition = it
-                    },
-                    onValueChangeFinished = {
-                        viewModel.seekTo(seekPosition.toLong())
-                        isSeeking = false
-                    },
-                    valueRange = 0f..duration,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics {
-                            contentDescription = playbackPositionDesc
+                    Slider(
+                        value = if (isSeeking) seekPosition else position,
+                        onValueChange = {
+                            isSeeking = true
+                            seekPosition = it
                         },
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs),
-                        style = MaterialTheme.typography.labelSmall,
+                        onValueChangeFinished = {
+                            viewModel.seekTo(seekPosition.toLong())
+                            isSeeking = false
+                        },
+                        valueRange = 0f..duration,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = playbackPositionDesc },
                     )
-                    Text(
-                        text = formatTime(playerState.durationMs),
-                        style = MaterialTheme.typography.labelSmall,
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            text = formatTime(playerState.durationMs),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        IconButton(
+                            enabled = uiState.tracks.size > 1 && currentTrackIndex > 0,
+                            onClick = { viewModel.skipToTrack(currentTrackIndex - 1) },
+                        ) {
+                            Icon(
+                                Icons.Default.SkipPrevious,
+                                contentDescription = stringResource(R.string.cd_previous_chapter),
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        IconButton(onClick = { viewModel.seekBack() }) {
+                            Icon(
+                                Icons.Default.Replay10,
+                                contentDescription = stringResource(R.string.cd_rewind_10),
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        FilledIconButton(
+                            onClick = { viewModel.togglePlayPause() },
+                            modifier = Modifier.size(64.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play),
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        IconButton(onClick = { viewModel.seekForward() }) {
+                            Icon(
+                                Icons.Default.Forward10,
+                                contentDescription = stringResource(R.string.cd_forward_10),
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        IconButton(
+                            enabled = uiState.tracks.size > 1 && currentTrackIndex < uiState.tracks.lastIndex,
+                            onClick = { viewModel.skipToTrack(currentTrackIndex + 1) },
+                        ) {
+                            Icon(
+                                Icons.Default.SkipNext,
+                                contentDescription = stringResource(R.string.cd_next_chapter),
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    SpeedControl(
+                        currentSpeed = playerState.playbackSpeed,
+                        onSpeedChanged = { viewModel.setSpeed(it) },
                     )
                 }
-
-                Spacer(Modifier.height(24.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    IconButton(
-                        enabled = uiState.tracks.size > 1 && currentTrackIndex > 0,
-                        onClick = { viewModel.skipToTrack(currentTrackIndex - 1) },
-                    ) {
-                        Icon(
-                            Icons.Default.SkipPrevious,
-                            contentDescription = stringResource(R.string.cd_previous_chapter),
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = { viewModel.seekBack() },
-                    ) {
-                        Icon(
-                            Icons.Default.Replay10,
-                            contentDescription = stringResource(R.string.cd_rewind_10),
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    FilledIconButton(
-                        onClick = { viewModel.togglePlayPause() },
-                        modifier = Modifier.size(64.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play),
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = { viewModel.seekForward() },
-                    ) {
-                        Icon(
-                            Icons.Default.Forward10,
-                            contentDescription = stringResource(R.string.cd_forward_10),
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    IconButton(
-                        enabled = uiState.tracks.size > 1 && currentTrackIndex < uiState.tracks.lastIndex,
-                        onClick = { viewModel.skipToTrack(currentTrackIndex + 1) },
-                    ) {
-                        Icon(
-                            Icons.Default.SkipNext,
-                            contentDescription = stringResource(R.string.cd_next_chapter),
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                SpeedControl(
-                    currentSpeed = playerState.playbackSpeed,
-                    onSpeedChanged = { viewModel.setSpeed(it) },
-                )
             }
         }
     }
