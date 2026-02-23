@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import androidx.core.net.toUri
+import android.util.Log
 
 data class ScannedBook(
     val title: String,
@@ -38,11 +39,15 @@ private data class AudioMeta(
 
 class FolderScanner(private val context: Context) {
 
+    companion object {
+        private const val TAG = "FolderScanner"
+    }
+
     // ── Public scan API ───────────────────────────────────────────────────────
 
     suspend fun scanFolder(treeUri: Uri): ScannedBook? = withContext(Dispatchers.IO) {
         val root = DocumentFile.fromTreeUri(context, treeUri) ?: return@withContext null
-        val audioFiles = collectAudioFiles(root)
+        val audioFiles = collectDirectAudioFiles(root)
         if (audioFiles.isEmpty()) return@withContext null
 
         val sortedFiles = audioFiles.sortedWith(naturalOrderComparator())
@@ -357,6 +362,30 @@ class FolderScanner(private val context: Context) {
             else if (file.type?.startsWith("audio/") == true) result.add(file)
         }
         return result
+    }
+
+    /**
+     * Collects audio files ONLY from the current directory, not from subdirectories.
+     * Used to calculate correct duration when the folder contains nested audiobook folders.
+     */
+    private fun collectDirectAudioFiles(dir: DocumentFile): List<DocumentFile> {
+        val directFiles = dir.listFiles()
+            .filter { it.isFile && it.type?.startsWith("audio/") == true }
+        
+        // Debug logging: detect nested folders with audio files
+        val nestedFolders = dir.listFiles()
+            .filter { it.isDirectory }
+            .filter { subdir -> 
+                subdir.listFiles().any { it.isFile && it.type?.startsWith("audio/") == true }
+            }
+        
+        if (nestedFolders.isNotEmpty()) {
+            Log.d(TAG, "Folder '${dir.name}' contains ${nestedFolders.size} nested audiobook folder(s): " +
+                nestedFolders.joinToString { it.name ?: "unknown" })
+            Log.d(TAG, "Including only ${directFiles.size} direct audio files in duration calculation")
+        }
+        
+        return directFiles
     }
 
     private fun isTreeUri(uri: Uri): Boolean = uri.pathSegments.contains("tree")
