@@ -57,6 +57,7 @@ class PlayerViewModelTest {
         coJustRun { mockRepository.setBookAvailability(any(), any()) }
         justRun { mockController.captureCurrentBookState() }
         justRun { mockController.setPlaylist(any(), any()) }
+        justRun { mockController.setBookMetadata(any(), any(), any()) }
         justRun { mockController.setInitialState(any(), any(), any(), any()) }
         justRun { mockController.unlockStateUpdates() }
         justRun { mockController.seekToTrack(any(), any()) }

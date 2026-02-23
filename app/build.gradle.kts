@@ -101,6 +101,9 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+
     // AppCompat (AppCompatActivity + setApplicationLocales)
     implementation(libs.androidx.appcompat)
 

@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 
 data class PlayerState(
     val isPlaying: Boolean = false,
@@ -60,6 +61,7 @@ class PlaybackController(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
     private var isConnecting = false
+    private var playbackService: PlaybackService? = null
     
     // Track consecutive errors to detect if entire book is unavailable
     private var consecutiveErrors = 0
@@ -155,6 +157,9 @@ class PlaybackController(private val context: Context) {
                     controller = mc
                     mc.addListener(listener)
                     updateState()
+                    
+                    // Start connection health monitoring
+                    startConnectionMonitoring()
                 } catch (_: Exception) {
                     // Service not running yet — will be started lazily when setPlaylist is called
                 } finally {
@@ -163,6 +168,25 @@ class PlaybackController(private val context: Context) {
             },
             MoreExecutors.directExecutor(),
         )
+    }
+    
+    /**
+     * Monitor MediaController connection health and reconnect if disconnected.
+     * This prevents saving stale progress when connection is lost.
+     */
+    private fun startConnectionMonitoring() {
+        scope.launch {
+            while (true) {
+                delay(5_000L) // Check every 5 seconds
+                val c = controller
+                if (c == null || !c.isConnected) {
+                    Log.w(TAG, "MediaController disconnected, attempting reconnect...")
+                    controller = null
+                    isConnecting = false
+                    connect()
+                }
+            }
+        }
     }
 
     fun play() {
@@ -233,6 +257,23 @@ class PlaybackController(private val context: Context) {
         controller?.run {
             setMediaItems(mediaItems)
             prepare()
+        }
+    }
+    
+    /**
+     * Set book metadata in the PlaybackService for progress calculation.
+     * Must be called after setPlaylist with track information from the database.
+     * 
+     * @param bookId The book ID
+     * @param trackIds List of track IDs in playlist order
+     * @param trackDurations List of track durations in ms, matching trackIds order
+     */
+    fun setBookMetadata(bookId: Long, trackIds: List<Long>, trackDurations: List<Long>) {
+        // Atomically store all fields together to prevent race conditions
+        PlaybackServiceMetadata.set(bookId, trackIds, trackDurations)
+        
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Set book metadata: bookId=$bookId, tracks=${trackIds.size}")
         }
     }
     
@@ -375,6 +416,59 @@ class PlaybackController(private val context: Context) {
             }
         }
     }
+}
+
+/**
+ * Immutable snapshot of book playback metadata.
+ * Ensures atomic read/write of all fields together to prevent race conditions.
+ * 
+ * @property bookId The unique ID of the audiobook
+ * @property trackIds List of track IDs in playlist order
+ * @property trackDurations List of track durations in milliseconds, matching trackIds order
+ */
+data class BookMetadata(
+    val bookId: Long,
+    val trackIds: List<Long>,
+    val trackDurations: List<Long>
+) {
+    init {
+        require(trackIds.size == trackDurations.size) {
+            "trackIds (${trackIds.size}) and trackDurations (${trackDurations.size}) must have the same size"
+        }
+        require(trackIds.isNotEmpty()) {
+            "trackIds and trackDurations cannot be empty"
+        }
+    }
+}
+
+/**
+ * Shared metadata holder for communication between PlaybackController and PlaybackService.
+ * This is needed because MediaController doesn't provide direct service access.
+ * 
+ * Uses AtomicReference to ensure all metadata fields are read/written atomically together,
+ * preventing race conditions where bookId, trackIds, and trackDurations become inconsistent.
+ */
+object PlaybackServiceMetadata {
+    private val metadata = AtomicReference<BookMetadata?>(null)
+    
+    /**
+     * Atomically sets all book metadata fields together.
+     * 
+     * @param bookId The book ID
+     * @param trackIds List of track IDs in playlist order
+     * @param trackDurations List of track durations in ms, matching trackIds order
+     */
+    fun set(bookId: Long, trackIds: List<Long>, trackDurations: List<Long>) {
+        metadata.set(BookMetadata(bookId, trackIds, trackDurations))
+    }
+    
+    /**
+     * Atomically retrieves a snapshot of all book metadata fields.
+     * Returns null if no metadata has been set.
+     * 
+     * @return Immutable BookMetadata snapshot, or null
+     */
+    fun get(): BookMetadata? = metadata.get()
 }
 
 private const val TAG = "PlaybackController"

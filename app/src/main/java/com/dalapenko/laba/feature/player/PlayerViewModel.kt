@@ -55,7 +55,6 @@ class PlayerViewModel(
     init {
         loadBook()
         collectPlayerState()
-        startProgressAutoSave()
         observePlaybackErrors()
     }
 
@@ -139,6 +138,11 @@ class PlayerViewModel(
             )
         }
         playbackController.setPlaylist(items, bookId)
+        
+        // CRITICAL: Set book metadata for PlaybackService to calculate progress
+        val trackIds = tracks.map { it.id }
+        val trackDurations = tracks.map { it.durationMs }
+        playbackController.setBookMetadata(bookId, trackIds, trackDurations)
 
         // Restore position and speed from saved progress
         val progress = repository.getProgress(bookId)
@@ -212,20 +216,6 @@ class PlayerViewModel(
         val nearEnd = state.durationMs > 0 && state.currentPositionMs >= state.durationMs - 1000
         if (isLastTrack && nearEnd && !state.isPlaying) {
             viewModelScope.launch { saveProgressInternal(forceCompleted = true) }
-        }
-    }
-
-    private fun startProgressAutoSave() {
-        // Skip auto-save if interval is 0 or negative (for testing)
-        if (autoSaveIntervalMs <= 0) return
-        
-        viewModelScope.launch {
-            while (true) {
-                delay(autoSaveIntervalMs)
-                if (_uiState.value.tracks.isNotEmpty()) {
-                    saveProgressInternal()
-                }
-            }
         }
     }
 
@@ -328,10 +318,20 @@ class PlayerViewModel(
     }
 
     override fun onCleared() {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "ViewModel cleared for book $bookId, saving final progress")
+        // Service handles periodic saves and onDestroy() save
+        // We only need to save here for completion detection (business logic)
+        val tracks = _uiState.value.tracks
+        if (tracks.isNotEmpty()) {
+            val state = _uiState.value.playerState
+            val isLastTrack = state.currentMediaItemIndex >= tracks.lastIndex
+            val nearEnd = state.durationMs > 0 && state.currentPositionMs >= state.durationMs - 1000
+            
+            // Only save if we're detecting completion state
+            if (isLastTrack && nearEnd) {
+                saveProgressInternal(forceCompleted = true)
+            }
         }
-        saveProgressInternal()
+        
         super.onCleared()
     }
 }
