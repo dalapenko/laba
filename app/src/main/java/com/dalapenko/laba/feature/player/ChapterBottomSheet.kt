@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,14 +38,21 @@ fun ChapterBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        modifier = Modifier.testTag("chapter_bottom_sheet")
     ) {
         Text(
             text = stringResource(R.string.chapters_title),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("chapters_title"),
         )
 
-        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("chapters_list")
+        ) {
             itemsIndexed(tracks) { index, track ->
                 val isCurrent = index == currentTrackIndex
                 ListItem(
@@ -73,7 +81,9 @@ fun ChapterBottomSheet(
                     } else {
                         ListItemDefaults.colors()
                     },
-                    modifier = Modifier.clickable { onTrackSelected(index) },
+                    modifier = Modifier
+                        .clickable { onTrackSelected(index) }
+                        .testTag("chapter_item_$index"),
                 )
             }
         }

@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -142,13 +143,18 @@ fun LibraryScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .testTag("library_screen"),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    IconButton(onClick = onSettingsClick) {
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.testTag("settings_button")
+                    ) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = stringResource(R.string.cd_settings),
@@ -162,12 +168,14 @@ fun LibraryScreen(
             Box {
                 FloatingActionButton(
                     onClick = { showFabMenu = true },
+                    modifier = Modifier.testTag("fab_add")
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_audiobook))
                 }
                 DropdownMenu(
                     expanded = showFabMenu,
                     onDismissRequest = { showFabMenu = false },
+                    modifier = Modifier.testTag("fab_menu")
                 ) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_add_folder)) },
@@ -176,6 +184,7 @@ fun LibraryScreen(
                             showFabMenu = false
                             folderPicker.launch(null)
                         },
+                        modifier = Modifier.testTag("menu_add_folder")
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_add_file)) },
@@ -184,6 +193,7 @@ fun LibraryScreen(
                             showFabMenu = false
                             filePicker.launch(arrayOf("audio/*"))
                         },
+                        modifier = Modifier.testTag("menu_add_file")
                     )
                 }
             }
@@ -202,6 +212,7 @@ fun LibraryScreen(
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.testTag("books_list")
                 ) {
                     items(books, key = { it.book.id }) { bookWithProgress ->
                         val isActive = playbackStatus.activeBookId == bookWithProgress.book.id
@@ -317,6 +328,7 @@ private fun BookCard(
         modifier = modifier
             .fillMaxWidth()
             .alpha(if (isAvailable) 1f else 0.4f)
+            .testTag("book_card_${book.id}")
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -343,6 +355,7 @@ private fun BookCard(
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("book_title_${book.id}")
                 )
 
                 book.author?.let { author ->
@@ -358,7 +371,9 @@ private fun BookCard(
 
                 LinearProgressIndicator(
                     progress = { fraction },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("book_progress_${book.id}"),
                 )
 
                 Spacer(Modifier.height(6.dp))
@@ -367,12 +382,14 @@ private fun BookCard(
                     AssistChip(
                         onClick = {},
                         label = { Text(stringResource(R.string.chip_completed)) },
+                        modifier = Modifier.testTag("book_completed_chip_${book.id}")
                     )
                 } else {
                     Text(
                         text = stringResource(R.string.progress_percent, (fraction * 100).toInt()),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("book_progress_text_${book.id}")
                     )
                 }
             }

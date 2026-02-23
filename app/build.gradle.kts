@@ -25,7 +25,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.dalapenko.laba.LabaTestRunner"
 
         @Suppress("UnstableApiUsage")
         androidResources.localeFilters.addAll(setOf("en", "ru"))
@@ -144,6 +144,23 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+
+    // Android UI Testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.kaspresso)
+    androidTestImplementation(libs.kaspresso.compose)
+    androidTestImplementation(libs.androidx.navigation.testing)
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.koin.test)
+    androidTestImplementation(libs.koin.test.junit4)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.tooling)
+    androidTestImplementation(libs.compose.ui)
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+
+    // Fix for drawerlayout resource linking issue in tests
+    debugImplementation(libs.androidx.drawerlayout)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
