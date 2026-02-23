@@ -1,0 +1,77 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:LibraryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun LibraryScreen( onBookClick: (Long) -&gt; Unit, onSettingsClick: () -&gt; Unit, viewModel: LibraryViewModel = koinViewModel(), )</ID>
+    <ID>CyclomaticComplexMethod:PlayerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlayerScreen( bookId: Long, autoPlay: Boolean = true, onBack: () -&gt; Unit, viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) }, )</ID>
+    <ID>FunctionNaming:AppNavHost.kt$@Composable fun AppNavHost(navController: NavHostController)</ID>
+    <ID>FunctionNaming:ChapterBottomSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChapterBottomSheet( tracks: List&lt;TrackEntity&gt;, currentTrackIndex: Int, onTrackSelected: (Int) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LibraryScreen.kt$@Composable private fun BookThumbnail( coverUri: String?, title: String, isActive: Boolean, isPlaying: Boolean, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:LibraryScreen.kt$@Composable private fun EmptyLibrary(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:LibraryScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun BookCard( bookWithProgress: BookWithProgress, isActive: Boolean, isPlaying: Boolean, isAvailable: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:LibraryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun LibraryScreen( onBookClick: (Long) -&gt; Unit, onSettingsClick: () -&gt; Unit, viewModel: LibraryViewModel = koinViewModel(), )</ID>
+    <ID>FunctionNaming:PlayerScreen.kt$@Composable private fun CoverArt( coverUri: String?, title: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:PlayerScreen.kt$@Composable private fun SpeedControl( currentSpeed: Float, onSpeedChanged: (Float) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:PlayerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlayerScreen( bookId: Long, autoPlay: Boolean = true, onBack: () -&gt; Unit, viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) }, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun LanguageDialog( currentTag: String?, onSelect: (String?) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun LicenseDialog(onDismiss: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SectionHeader( title: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun ThemeDialog( current: ThemeMode, onSelect: (ThemeMode) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Theme.kt$@Composable fun LabaTheme( darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolean = true, content: @Composable () -&gt; Unit, )</ID>
+    <ID>LongMethod:LibraryScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun BookCard( bookWithProgress: BookWithProgress, isActive: Boolean, isPlaying: Boolean, isAvailable: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:LibraryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun LibraryScreen( onBookClick: (Long) -&gt; Unit, onSettingsClick: () -&gt; Unit, viewModel: LibraryViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:PlayerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlayerScreen( bookId: Long, autoPlay: Boolean = true, onBack: () -&gt; Unit, viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) }, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( onBack: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:LibraryScreen.kt$( bookWithProgress: BookWithProgress, isActive: Boolean, isPlaying: Boolean, isAvailable: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:LibraryScreen.kt$( coverUri: String?, title: String, isActive: Boolean, isPlaying: Boolean, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:TestFixtures.kt$( bookId: Long = 1L, lastTrackId: Long = 1L, lastPositionMs: Long = 50_000L, completedTracksMs: Long = 0L, lastUpdated: Long = 1_000_000L, isCompleted: Boolean = false, playbackSpeed: Float = 1f, )</ID>
+    <ID>LongParameterList:TestFixtures.kt$( id: Long = 1L, bookId: Long = 1L, fileUri: String = "content://test/track1.mp3", fileName: String = "Chapter 01.mp3", durationMs: Long = 100_000L, sequenceOrder: Int = 0, )</ID>
+    <ID>LongParameterList:TestFixtures.kt$( id: Long = 1L, title: String = "Test Book", author: String? = "Test Author", totalDurationMs: Long = 300_000L, rootFolderUri: String = "content://test/tree/book1", coverUri: String? = null, isAvailable: Boolean = true, )</ID>
+    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$3</ID>
+    <ID>MagicNumber:AppNavHost.kt$380</ID>
+    <ID>MagicNumber:ChapterBottomSheet.kt$1000</ID>
+    <ID>MagicNumber:ChapterBottomSheet.kt$60</ID>
+    <ID>MagicNumber:FolderScanner.kt$FolderScanner$0xFFFFFFFFL</ID>
+    <ID>MagicNumber:LibraryScreen.kt$0.4f</ID>
+    <ID>MagicNumber:LibraryScreen.kt$100</ID>
+    <ID>MagicNumber:LibraryViewModel.kt$LibraryViewModel$0.5f</ID>
+    <ID>MagicNumber:LibraryViewModel.kt$LibraryViewModel$5000</ID>
+    <ID>MagicNumber:PlaybackController.kt$PlaybackController$100</ID>
+    <ID>MagicNumber:PlaybackController.kt$PlaybackController$1000</ID>
+    <ID>MagicNumber:PlaybackController.kt$PlaybackController$250</ID>
+    <ID>MagicNumber:PlaybackController.kt$PlaybackController$5_000L</ID>
+    <ID>MagicNumber:PlaybackController.kt$PlaybackController.&lt;no name provided&gt;$3</ID>
+    <ID>MagicNumber:PlaybackService.kt$PlaybackService$100</ID>
+    <ID>MagicNumber:PlaybackService.kt$PlaybackService$1000</ID>
+    <ID>MagicNumber:PlaybackService.kt$PlaybackService$10_000L</ID>
+    <ID>MagicNumber:PlayerScreen.kt$0.5f</ID>
+    <ID>MagicNumber:PlayerScreen.kt$0.7f</ID>
+    <ID>MagicNumber:PlayerScreen.kt$0.85f</ID>
+    <ID>MagicNumber:PlayerScreen.kt$1000</ID>
+    <ID>MagicNumber:PlayerScreen.kt$3600</ID>
+    <ID>MagicNumber:PlayerScreen.kt$60</ID>
+    <ID>MagicNumber:PlayerViewModel.kt$PlayerViewModel$0.5f</ID>
+    <ID>MagicNumber:PlayerViewModel.kt$PlayerViewModel$1000</ID>
+    <ID>MagicNumber:PlayerViewModel.kt$PlayerViewModel$5000</ID>
+    <ID>MaxLineLength:LibraryScreen.kt$contentDescription = if (isPlaying) stringResource(R.string.cd_playing) else stringResource(R.string.cd_paused)</ID>
+    <ID>MaxLineLength:PlayerScreen.kt$Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = stringResource(R.string.cd_show_chapters))</ID>
+    <ID>MaxLineLength:PlayerScreen.kt$contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play)</ID>
+    <ID>MaxLineLength:PlayerScreen.kt$imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow</ID>
+    <ID>MaxLineLength:PlayerScreen.kt$text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs)</ID>
+    <ID>NewLineAtEndOfFile:FolderScanner.kt$com.dalapenko.laba.feature.library.FolderScanner.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerViewModel.kt$com.dalapenko.laba.feature.player.PlayerViewModel.kt</ID>
+    <ID>ReturnCount:BookRepository.kt$BookRepository$private fun computeProgressFraction(book: BookEntity, progress: ProgressEntity?): Float</ID>
+    <ID>ReturnCount:PlaybackService.kt$PlaybackService$private fun scheduleProgressSaveViaWorkManager(immediate: Boolean = false)</ID>
+    <ID>ReturnCount:PlaybackService.kt$PlaybackService$private suspend fun saveProgressSync()</ID>
+    <ID>TooGenericExceptionCaught:PlaybackService.kt$PlaybackService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ProgressSaveWorker.kt$ProgressSaveWorker$e: Exception</ID>
+    <ID>TooManyFunctions:BookRepository.kt$BookRepository</ID>
+    <ID>TooManyFunctions:FolderScanner.kt$FolderScanner</ID>
+    <ID>TooManyFunctions:PlaybackController.kt$PlaybackController</ID>
+    <ID>TooManyFunctions:PlayerViewModel.kt$PlayerViewModel : ViewModel</ID>
+    <ID>UnusedPrivateProperty:PlaybackController.kt$PlaybackController$private var playbackService: PlaybackService? = null</ID>
+    <ID>UnusedPrivateProperty:PlayerViewModel.kt$PlayerViewModel$private val autoSaveIntervalMs: Long = 5_000L</ID>
+    <ID>VariableNaming:SettingsRepository.kt$SettingsRepository$private val THEME_MODE = stringPreferencesKey("theme_mode")</ID>
+  </CurrentIssues>
+</SmellBaseline>
