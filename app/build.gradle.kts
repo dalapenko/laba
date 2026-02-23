@@ -92,6 +92,12 @@ dependencies {
     // DocumentFile
     implementation(libs.androidx.documentfile)
 
+    // DataStore
+    implementation(libs.datastore.preferences)
+
+    // AppCompat (AppCompatActivity + setApplicationLocales)
+    implementation(libs.androidx.appcompat)
+
     // Coil
     implementation(libs.coil.compose)
 
