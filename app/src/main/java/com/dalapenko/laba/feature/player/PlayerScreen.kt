@@ -109,7 +109,10 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showChapters.value = true }) {
+                    IconButton(
+                        onClick = { showChapters.value = true },
+                        enabled = uiState.tracks.size > 1,
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = stringResource(R.string.cd_show_chapters))
                     }
                 },
