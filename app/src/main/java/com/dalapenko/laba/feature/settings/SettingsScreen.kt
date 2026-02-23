@@ -68,9 +68,9 @@ fun SettingsScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val uriHandler = LocalUriHandler.current
-    var showLicenseDialog by remember { mutableStateOf(false) }
-    var showThemeDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
+    val showLicenseDialog = remember { mutableStateOf(false) }
+    val showThemeDialog = remember { mutableStateOf(false) }
+    val showLanguageDialog = remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -114,7 +114,7 @@ fun SettingsScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                modifier = Modifier.clickable { showThemeDialog = true },
+                modifier = Modifier.clickable { showThemeDialog.value = true },
             )
 
             ListItem(
@@ -127,7 +127,7 @@ fun SettingsScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                modifier = Modifier.clickable { showLanguageDialog = true },
+                modifier = Modifier.clickable { showLanguageDialog.value = true },
             )
 
             Spacer(Modifier.height(8.dp))
@@ -204,30 +204,30 @@ fun SettingsScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                modifier = Modifier.clickable { showLicenseDialog = true },
+                modifier = Modifier.clickable { showLicenseDialog.value = true },
             )
         }
     }
 
-    if (showThemeDialog) {
+    if (showThemeDialog.value) {
         ThemeDialog(
             current = themeMode,
             onSelect = { viewModel.setTheme(it) },
-            onDismiss = { showThemeDialog = false },
+            onDismiss = { showThemeDialog.value = false },
         )
     }
 
-    if (showLanguageDialog) {
+    if (showLanguageDialog.value) {
         LanguageDialog(
             currentTag = if (AppCompatDelegate.getApplicationLocales().isEmpty) null
                          else AppCompatDelegate.getApplicationLocales().toLanguageTags(),
             onSelect = { viewModel.setLanguage(it) },
-            onDismiss = { showLanguageDialog = false },
+            onDismiss = { showLanguageDialog.value = false },
         )
     }
 
-    if (showLicenseDialog) {
-        LicenseDialog(onDismiss = { showLicenseDialog = false })
+    if (showLicenseDialog.value) {
+        LicenseDialog(onDismiss = { showLicenseDialog.value = false })
     }
 }
 
