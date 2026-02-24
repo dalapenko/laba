@@ -29,13 +29,13 @@
     <ID>LongParameterList:TestFixtures.kt$( id: Long = 1L, bookId: Long = 1L, fileUri: String = "content://test/track1.mp3", fileName: String = "Chapter 01.mp3", durationMs: Long = 100_000L, sequenceOrder: Int = 0, )</ID>
     <ID>LongParameterList:TestFixtures.kt$( id: Long = 1L, title: String = "Test Book", author: String? = "Test Author", totalDurationMs: Long = 300_000L, rootFolderUri: String = "content://test/tree/book1", coverUri: String? = null, isAvailable: Boolean = true, )</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$3</ID>
+    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$4</ID>
     <ID>MagicNumber:AppNavHost.kt$380</ID>
     <ID>MagicNumber:ChapterBottomSheet.kt$1000</ID>
     <ID>MagicNumber:ChapterBottomSheet.kt$60</ID>
     <ID>MagicNumber:FolderScanner.kt$FolderScanner$0xFFFFFFFFL</ID>
     <ID>MagicNumber:LibraryScreen.kt$0.4f</ID>
     <ID>MagicNumber:LibraryScreen.kt$100</ID>
-    <ID>MagicNumber:LibraryViewModel.kt$LibraryViewModel$0.5f</ID>
     <ID>MagicNumber:LibraryViewModel.kt$LibraryViewModel$5000</ID>
     <ID>MagicNumber:PlaybackController.kt$PlaybackController$100</ID>
     <ID>MagicNumber:PlaybackController.kt$PlaybackController$1000</ID>
@@ -60,7 +60,6 @@
     <ID>MaxLineLength:PlayerScreen.kt$imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow</ID>
     <ID>MaxLineLength:PlayerScreen.kt$text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs)</ID>
     <ID>NewLineAtEndOfFile:FolderScanner.kt$com.dalapenko.laba.feature.library.FolderScanner.kt</ID>
-    <ID>NewLineAtEndOfFile:PlayerViewModel.kt$com.dalapenko.laba.feature.player.PlayerViewModel.kt</ID>
     <ID>ReturnCount:BookRepository.kt$BookRepository$private fun computeProgressFraction(book: BookEntity, progress: ProgressEntity?): Float</ID>
     <ID>ReturnCount:PlaybackService.kt$PlaybackService$private fun scheduleProgressSaveViaWorkManager(immediate: Boolean = false)</ID>
     <ID>ReturnCount:PlaybackService.kt$PlaybackService$private suspend fun saveProgressSync()</ID>
@@ -70,8 +69,6 @@
     <ID>TooManyFunctions:FolderScanner.kt$FolderScanner</ID>
     <ID>TooManyFunctions:PlaybackController.kt$PlaybackController</ID>
     <ID>TooManyFunctions:PlayerViewModel.kt$PlayerViewModel : ViewModel</ID>
-    <ID>UnusedPrivateProperty:PlaybackController.kt$PlaybackController$private var playbackService: PlaybackService? = null</ID>
-    <ID>UnusedPrivateProperty:PlayerViewModel.kt$PlayerViewModel$private val autoSaveIntervalMs: Long = 5_000L</ID>
     <ID>VariableNaming:SettingsRepository.kt$SettingsRepository$private val THEME_MODE = stringPreferencesKey("theme_mode")</ID>
   </CurrentIssues>
 </SmellBaseline>

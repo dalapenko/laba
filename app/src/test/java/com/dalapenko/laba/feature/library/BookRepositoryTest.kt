@@ -1,6 +1,8 @@
 package com.dalapenko.laba.feature.library
 
 import app.cash.turbine.test
+import com.dalapenko.laba.core.data.BookRepository
+import com.dalapenko.laba.core.database.AppDatabase
 import com.dalapenko.laba.core.database.dao.BookDao
 import com.dalapenko.laba.core.database.dao.ProgressDao
 import com.dalapenko.laba.core.database.dao.TrackDao
@@ -14,6 +16,8 @@ import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import androidx.room.withTransaction
+import io.mockk.mockkStatic
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -23,6 +27,7 @@ import org.junit.Test
 
 class BookRepositoryTest {
 
+    private val mockDatabase = mockk<AppDatabase>()
     private val bookDao = mockk<BookDao>()
     private val trackDao = mockk<TrackDao>()
     private val progressDao = mockk<ProgressDao>()
@@ -35,7 +40,17 @@ class BookRepositoryTest {
     fun setup() {
         every { bookDao.observeAll() } returns booksFlow
         every { progressDao.observeAll() } returns allProgressFlow
-        repository = BookRepository(bookDao, trackDao, progressDao)
+        every { mockDatabase.progressDao() } returns progressDao
+
+        // Stub withTransaction to execute the block directly (no real DB transaction in unit tests)
+        // For mockkStatic extension functions: args[0]=receiver, args[1]=block lambda
+        mockkStatic("androidx.room.RoomDatabaseKt")
+        coEvery { mockDatabase.withTransaction<Any>(any()) } coAnswers {
+            @Suppress("UNCHECKED_CAST")
+            (args[1] as suspend () -> Any)()
+        }
+
+        repository = BookRepository(mockDatabase, bookDao, trackDao)
     }
 
     // ── addBookIfNew ──────────────────────────────────────────────────────────
@@ -53,13 +68,13 @@ class BookRepositoryTest {
     }
 
     @Test
-    fun givenExistingBook_whenAddBookIfNew_thenReturnsMinusOneAndSkipsInsert() = runTest {
+    fun givenExistingBook_whenAddBookIfNew_thenReturnsNullAndSkipsInsert() = runTest {
         val book = testBook()
         coEvery { bookDao.existsByRootUri(book.rootFolderUri) } returns true
 
         val result = repository.addBookIfNew(book, emptyList())
 
-        assertEquals(-1L, result)
+        assertNull(result)
         coVerify(exactly = 0) { bookDao.insert(any()) }
         coVerify(exactly = 0) { trackDao.insertAll(any()) }
     }

@@ -2,7 +2,11 @@ package com.dalapenko.laba.feature.library
 
 import app.cash.turbine.test
 import com.dalapenko.laba.MainDispatcherRule
+import com.dalapenko.laba.core.data.BookRepository
+import com.dalapenko.laba.core.data.BookWithProgress
+import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.media.PlaybackController
+import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
 import com.dalapenko.laba.testBook
 import com.dalapenko.laba.testProgress
@@ -32,6 +36,7 @@ class LibraryViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val mockRepository = mockk<BookRepository>()
+    private val mockProgressRepository = mockk<ProgressRepository>()
     private val mockScanner = mockk<FolderScanner>()
     private val mockController = mockk<PlaybackController>()
 
@@ -47,17 +52,33 @@ class LibraryViewModelTest {
 
         // Repository stubs for init{} block
         every { mockRepository.observeAllBooksWithProgress() } returns booksWithProgressFlow
-        coEvery { mockRepository.getLastPlayedBookId() } returns null
+        coEvery { mockProgressRepository.getLastPlayedBookId() } returns null
         coEvery { mockRepository.getBooksWithoutCover() } returns emptyList()
         coJustRun { mockRepository.recheckAllAvailability(any()) }
         justRun { mockController.cleanupOldSnapshots(any()) }
 
+        // Default progress stubs
+        coEvery { mockProgressRepository.getProgress(any()) } returns null
+        coJustRun { mockProgressRepository.saveProgress(any()) }
+
         // Default: getBookWithTracks returns null (override per-test)
         coEvery { mockRepository.getBookWithTracks(any()) } returns null
+
+        // PlaybackPreparer controller stubs
+        justRun { mockController.captureCurrentBookState() }
+        justRun { mockController.setInitialState(any(), any(), any(), any()) }
+        justRun { mockController.setPlaylist(any(), any()) }
+        justRun { mockController.setBookMetadata(any(), any(), any()) }
+        justRun { mockController.seekToTrack(any(), any()) }
+        justRun { mockController.setSpeed(any()) }
+        justRun { mockController.play() }
+        justRun { mockController.pause() }
     }
 
-    private fun createViewModel() =
-        LibraryViewModel(mockRepository, mockScanner, mockController)
+    private fun createViewModel(): LibraryViewModel {
+        val preparer = PlaybackPreparer(mockProgressRepository, mockController)
+        return LibraryViewModel(mockRepository, mockProgressRepository, mockScanner, mockController, preparer)
+    }
 
     // ── prepareAndPlay — availability guards ──────────────────────────────────
 
@@ -119,10 +140,7 @@ class LibraryViewModelTest {
         coEvery { mockRepository.getBookById(2L) } returns book
         coEvery { mockScanner.isBookAvailable(any()) } returns true
         coEvery { mockRepository.getBookWithTracks(2L) } returns (book to tracks)
-        coEvery { mockRepository.getProgress(2L) } returns null
-        justRun { mockController.setInitialState(any(), any(), any(), any()) }
-        justRun { mockController.setPlaylist(any(), any()) }
-        justRun { mockController.play() }
+        coEvery { mockProgressRepository.getProgress(2L) } returns null
         val vm = createViewModel()
         advanceUntilIdle()
 
@@ -149,12 +167,7 @@ class LibraryViewModelTest {
         coEvery { mockRepository.getBookById(3L) } returns book
         coEvery { mockScanner.isBookAvailable(any()) } returns true
         coEvery { mockRepository.getBookWithTracks(3L) } returns (book to tracks)
-        coEvery { mockRepository.getProgress(3L) } returns progress
-        justRun { mockController.setInitialState(any(), any(), any(), any()) }
-        justRun { mockController.setPlaylist(any(), any()) }
-        justRun { mockController.seekToTrack(any(), any()) }
-        justRun { mockController.setSpeed(any()) }
-        justRun { mockController.play() }
+        coEvery { mockProgressRepository.getProgress(3L) } returns progress
         val vm = createViewModel()
         advanceUntilIdle()
 
@@ -182,10 +195,7 @@ class LibraryViewModelTest {
         coEvery { mockRepository.getBookById(4L) } returns book
         coEvery { mockScanner.isBookAvailable(any()) } returns true
         coEvery { mockRepository.getBookWithTracks(4L) } returns (book to tracks)
-        coEvery { mockRepository.getProgress(4L) } returns completedProgress
-        justRun { mockController.setInitialState(any(), any(), any(), any()) }
-        justRun { mockController.setPlaylist(any(), any()) }
-        justRun { mockController.play() }
+        coEvery { mockProgressRepository.getProgress(4L) } returns completedProgress
         val vm = createViewModel()
         advanceUntilIdle()
 

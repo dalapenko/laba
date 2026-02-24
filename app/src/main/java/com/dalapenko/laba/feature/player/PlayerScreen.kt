@@ -74,7 +74,7 @@ fun PlayerScreen(
     viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    val playerState = uiState.playerState
     val snackbarHostState = remember { SnackbarHostState() }
     val fallbackTrackNameTemplate = stringResource(R.string.fallback_track_name)
     val trackUnavailableTemplate = stringResource(R.string.snackbar_track_unavailable)

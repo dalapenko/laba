@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.dalapenko.laba.core.database.entity.ProgressEntity
-import com.dalapenko.laba.feature.library.BookRepository
+import com.dalapenko.laba.core.data.ProgressRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -26,7 +26,7 @@ class ProgressSaveWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params), KoinComponent {
 
-    private val repository: BookRepository by inject()
+    private val repository: ProgressRepository by inject()
 
     override suspend fun doWork(): Result {
         return try {

@@ -5,20 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.dalapenko.laba.core.database.entity.BookEntity
 import com.dalapenko.laba.core.database.entity.ProgressEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
+import com.dalapenko.laba.core.data.BookRepository
+import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaybackError
+import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
-import com.dalapenko.laba.core.media.PlaylistItem
-import com.dalapenko.laba.feature.library.BookRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import android.util.Log
 
@@ -39,8 +37,9 @@ class PlayerViewModel(
     private val bookId: Long,
     private val autoPlay: Boolean,
     private val repository: BookRepository,
+    private val progressRepository: ProgressRepository,
     private val playbackController: PlaybackController,
-    private val autoSaveIntervalMs: Long = 5_000L,  // Configurable for testing
+    private val playbackPreparer: PlaybackPreparer,
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
@@ -48,9 +47,6 @@ class PlayerViewModel(
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
-
-    val playerState: StateFlow<PlayerState> = playbackController.playerState
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerState())
 
     init {
         loadBook()
@@ -63,14 +59,6 @@ class PlayerViewModel(
             val result = repository.getBookWithTracks(bookId)
             if (result != null) {
                 val (book, tracks) = result
-                
-                // Only set initial state if we're switching to a different book
-                // If same book is already playing, we keep its current state
-                if (playbackController.currentBookId.value != bookId) {
-                    setInitialStateForBook(tracks)
-                }
-                
-                // Mark as initialized and not loading
                 _uiState.value = _uiState.value.copy(
                     book = book,
                     tracks = tracks,
@@ -87,92 +75,8 @@ class PlayerViewModel(
         }
     }
 
-    private suspend fun setInitialStateForBook(tracks: List<TrackEntity>) {
-        val progress = repository.getProgress(bookId)
-        val targetTrackIndex = if (progress != null && !progress.isCompleted) {
-            tracks.indexOfFirst { it.id == progress.lastTrackId }.takeIf { it >= 0 }
-        } else null
-
-        if (targetTrackIndex != null && progress != null) {
-            val targetTrack = tracks[targetTrackIndex]
-            playbackController.setInitialState(
-                position = progress.lastPositionMs,
-                duration = targetTrack.durationMs,
-                trackIndex = targetTrackIndex,
-                speed = progress.playbackSpeed.coerceIn(0.5f, 2.0f)
-            )
-        } else {
-            val firstTrack = tracks.firstOrNull()
-            playbackController.setInitialState(
-                position = 0L,
-                duration = firstTrack?.durationMs ?: 0L,
-                trackIndex = 0,
-                speed = 1.0f
-            )
-        }
-    }
-
     private suspend fun setupPlaylist(book: BookEntity, tracks: List<TrackEntity>) {
-        // Capture the current book's state before switching to prevent race conditions
-        // This ensures we save the correct final position even if state updates arrive late
-        playbackController.captureCurrentBookState()
-        
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "Setting up playlist for book $bookId (${book.title})")
-        }
-        
-        // Book is already loaded in the player (e.g. user navigated back and reopened it).
-        // Don't reset the playlist or touch playback state — just let the UI reflect what's playing.
-        if (playbackController.currentBookId.value == bookId) {
-            Log.d(TAG, "Book $bookId is already loaded, skipping playlist setup")
-            return
-        }
-
-        // Build and set the playlist
-        val items = tracks.map { track ->
-            PlaylistItem(
-                uri = track.fileUri,
-                title = track.fileName,
-                artist = book.author,
-                artworkUri = book.coverUri,
-            )
-        }
-        playbackController.setPlaylist(items, bookId)
-        
-        // CRITICAL: Set book metadata for PlaybackService to calculate progress
-        val trackIds = tracks.map { it.id }
-        val trackDurations = tracks.map { it.durationMs }
-        playbackController.setBookMetadata(bookId, trackIds, trackDurations)
-
-        // Restore position and speed from saved progress
-        val progress = repository.getProgress(bookId)
-        if (progress != null && !progress.isCompleted) {
-            val trackIndex = tracks.indexOfFirst { it.id == progress.lastTrackId }
-            if (trackIndex >= 0) {
-                playbackController.seekToTrack(trackIndex, progress.lastPositionMs)
-            } else {
-                // Track not found, unlock state updates
-                playbackController.unlockStateUpdates()
-            }
-            playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
-        } else {
-            // No saved progress or book was previously completed — start from beginning.
-            // Reset isCompleted so LibraryScreen immediately shows progress bar instead of "Completed".
-            if (progress != null) {
-                repository.saveProgress(
-                    progress.copy(
-                        isCompleted = false,
-                        lastPositionMs = 0L,
-                        completedTracksMs = 0L,
-                        lastTrackId = tracks.first().id,
-                        lastUpdated = System.currentTimeMillis(),
-                    )
-                )
-            }
-            playbackController.unlockStateUpdates()
-        }
-        
-        if (autoPlay) playbackController.play()
+        playbackPreparer.setupPlayback(bookId, book, tracks, autoPlay = autoPlay)
     }
 
     private fun collectPlayerState() {
@@ -186,7 +90,7 @@ class PlayerViewModel(
                     }
                     return@collect
                 }
-                
+
                 // Guard 2: Validate track index is within our track range
                 // This catches race conditions where currentBookId hasn't updated yet
                 val tracks = _uiState.value.tracks
@@ -197,13 +101,13 @@ class PlayerViewModel(
                     }
                     return@collect
                 }
-                
+
                 _uiState.value = _uiState.value.copy(playerState = state)
-                
+
                 // Continuously update snapshot to ensure we always have the latest state
                 // This protects against race conditions even if switching happens mid-update
                 playbackController.updateBookSnapshot(bookId, state)
-                
+
                 checkCompletion(state)
             }
         }
@@ -253,7 +157,7 @@ class PlayerViewModel(
         val snapshot = playbackController.getBookSnapshot(bookId)
         val state = snapshot ?: _uiState.value.playerState
         val tracks = _uiState.value.tracks
-        
+
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             val source = if (snapshot != null) "snapshot" else "local UI state"
             Log.d(TAG, "Saving progress for book $bookId from $source: " +
@@ -261,7 +165,7 @@ class PlayerViewModel(
                 "track=${state.currentMediaItemIndex}, " +
                 "forceCompleted=$forceCompleted")
         }
-        
+
         if (tracks.isEmpty()) return
 
         val currentIndex = state.currentMediaItemIndex.coerceIn(0, tracks.lastIndex)
@@ -277,7 +181,7 @@ class PlayerViewModel(
             )
 
         viewModelScope.launch {
-            repository.saveProgress(
+            progressRepository.saveProgress(
                 ProgressEntity(
                     bookId = bookId,
                     lastTrackId = currentTrack.id,
@@ -288,7 +192,7 @@ class PlayerViewModel(
                     playbackSpeed = state.playbackSpeed,
                 )
             )
-            
+
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "Progress saved to database for book $bookId: " +
                     "position=${state.currentPositionMs}ms, trackId=${currentTrack.id}")
@@ -317,23 +221,6 @@ class PlayerViewModel(
         }
     }
 
-    override fun onCleared() {
-        // Service handles periodic saves and onDestroy() save
-        // We only need to save here for completion detection (business logic)
-        val tracks = _uiState.value.tracks
-        if (tracks.isNotEmpty()) {
-            val state = _uiState.value.playerState
-            val isLastTrack = state.currentMediaItemIndex >= tracks.lastIndex
-            val nearEnd = state.durationMs > 0 && state.currentPositionMs >= state.durationMs - 1000
-            
-            // Only save if we're detecting completion state
-            if (isLastTrack && nearEnd) {
-                saveProgressInternal(forceCompleted = true)
-            }
-        }
-        
-        super.onCleared()
-    }
 }
 
 private const val TAG = "PlayerViewModel"

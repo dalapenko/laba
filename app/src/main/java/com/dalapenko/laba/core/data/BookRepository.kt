@@ -1,11 +1,13 @@
-package com.dalapenko.laba.feature.library
+package com.dalapenko.laba.core.data
 
+import androidx.room.withTransaction
+import com.dalapenko.laba.core.database.AppDatabase
 import com.dalapenko.laba.core.database.dao.BookDao
-import com.dalapenko.laba.core.database.dao.ProgressDao
 import com.dalapenko.laba.core.database.dao.TrackDao
 import com.dalapenko.laba.core.database.entity.BookEntity
 import com.dalapenko.laba.core.database.entity.ProgressEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
+import com.dalapenko.laba.feature.library.FolderScanner
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -17,12 +19,13 @@ data class BookWithProgress(
 )
 
 class BookRepository(
+    private val database: AppDatabase,
     private val bookDao: BookDao,
     private val trackDao: TrackDao,
-    private val progressDao: ProgressDao,
 ) {
-    fun observeAllBooksWithProgress(): Flow<List<BookWithProgress>> =
-        combine(bookDao.observeAll(), progressDao.observeAll()) { books, allProgress ->
+    fun observeAllBooksWithProgress(): Flow<List<BookWithProgress>> {
+        val progressDao = database.progressDao()
+        return combine(bookDao.observeAll(), progressDao.observeAll()) { books, allProgress ->
             val progressMap = allProgress.associateBy { it.bookId }
             books.map { book ->
                 val progress = progressMap[book.id]
@@ -34,6 +37,7 @@ class BookRepository(
                 )
             }
         }
+    }
 
     private fun computeProgressFraction(book: BookEntity, progress: ProgressEntity?): Float {
         if (progress == null) return 0f
@@ -49,27 +53,18 @@ class BookRepository(
         return book to tracks
     }
 
-    suspend fun addBook(book: BookEntity, tracks: List<TrackEntity>): Long {
-        val bookId = bookDao.insert(book)
-        val tracksWithBookId = tracks.map { it.copy(bookId = bookId) }
-        trackDao.insertAll(tracksWithBookId)
-        return bookId
-    }
+    suspend fun addBook(book: BookEntity, tracks: List<TrackEntity>): Long =
+        database.withTransaction {
+            val bookId = bookDao.insert(book)
+            val tracksWithBookId = tracks.map { it.copy(bookId = bookId) }
+            trackDao.insertAll(tracksWithBookId)
+            bookId
+        }
 
-    suspend fun addBookIfNew(book: BookEntity, tracks: List<TrackEntity>): Long {
-        if (bookDao.existsByRootUri(book.rootFolderUri)) return -1L
+    suspend fun addBookIfNew(book: BookEntity, tracks: List<TrackEntity>): Long? {
+        if (bookDao.existsByRootUri(book.rootFolderUri)) return null
         return addBook(book, tracks)
     }
-
-    suspend fun saveProgress(progress: ProgressEntity) {
-        progressDao.upsert(progress)
-    }
-
-    suspend fun getProgress(bookId: Long): ProgressEntity? =
-        progressDao.getByBook(bookId)
-
-    suspend fun getLastPlayedBookId(): Long? =
-        progressDao.getLastPlayed()?.bookId
 
     suspend fun getAllBooks(): List<BookEntity> = bookDao.getAll()
 

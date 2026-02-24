@@ -34,7 +34,7 @@ private data class AudioMeta(
     val album: String?,
     val author: String?,
     val durationMs: Long,
-    val embeddedPictureBytes: List<Byte>?,
+    val embeddedPictureBytes: ByteArray?,
 )
 
 class FolderScanner(private val context: Context) {
@@ -65,7 +65,7 @@ class FolderScanner(private val context: Context) {
 
         // Prefer an image file in the folder; fall back to embedded art from first track
         val coverUri = findFolderCoverUri(root)
-            ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it.toByteArray(), treeUri.toString()) }
+            ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it, treeUri.toString()) }
 
         ScannedBook(
             title = firstMeta.album ?: root.name ?: "Unknown Book",
@@ -82,7 +82,7 @@ class FolderScanner(private val context: Context) {
 
         val meta = extractAudioMeta(uri)
         val fileName = file.name ?: "Unknown Track"
-        val coverUri = meta.embeddedPictureBytes?.let { saveEmbeddedArt(it.toByteArray(), uri.toString()) }
+        val coverUri = meta.embeddedPictureBytes?.let { saveEmbeddedArt(it, uri.toString()) }
 
         ScannedBook(
             title = meta.title ?: fileName.substringBeforeLast('.'),
@@ -134,7 +134,7 @@ class FolderScanner(private val context: Context) {
             }
 
             val coverUri = findFolderCoverUri(dir)
-                ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it.toByteArray(), dir.uri.toString()) }
+                ?: firstMeta.embeddedPictureBytes?.let { saveEmbeddedArt(it, dir.uri.toString()) }
 
             out.add(
                 ScannedBook(
@@ -303,7 +303,7 @@ class FolderScanner(private val context: Context) {
                 author = author,
                 durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull() ?: 0L,
-                embeddedPictureBytes = retriever.embeddedPicture?.toList(),
+                embeddedPictureBytes = retriever.embeddedPicture,
             )
         } catch (_: Exception) {
             AudioMeta(null, null, null, 0L, null)
@@ -355,36 +355,21 @@ class FolderScanner(private val context: Context) {
 
     // ── File traversal ────────────────────────────────────────────────────────
 
-    private fun collectAudioFiles(dir: DocumentFile): List<DocumentFile> {
-        val result = mutableListOf<DocumentFile>()
-        for (file in dir.listFiles()) {
-            if (file.isDirectory) result.addAll(collectAudioFiles(file))
-            else if (file.type?.startsWith("audio/") == true) result.add(file)
-        }
-        return result
-    }
-
     /**
      * Collects audio files ONLY from the current directory, not from subdirectories.
      * Used to calculate correct duration when the folder contains nested audiobook folders.
      */
     private fun collectDirectAudioFiles(dir: DocumentFile): List<DocumentFile> {
-        val directFiles = dir.listFiles()
-            .filter { it.isFile && it.type?.startsWith("audio/") == true }
-        
-        // Debug logging: detect nested folders with audio files
-        val nestedFolders = dir.listFiles()
-            .filter { it.isDirectory }
-            .filter { subdir -> 
-                subdir.listFiles().any { it.isFile && it.type?.startsWith("audio/") == true }
+        val children = dir.listFiles()
+        val directFiles = children.filter { it.isFile && it.type?.startsWith("audio/") == true }
+
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            val nestedCount = children.count { it.isDirectory }
+            if (nestedCount > 0) {
+                Log.d(TAG, "Folder '${dir.name}': ${directFiles.size} audio files, $nestedCount subdirs")
             }
-        
-        if (nestedFolders.isNotEmpty()) {
-            Log.d(TAG, "Folder '${dir.name}' contains ${nestedFolders.size} nested audiobook folder(s): " +
-                nestedFolders.joinToString { it.name ?: "unknown" })
-            Log.d(TAG, "Including only ${directFiles.size} direct audio files in duration calculation")
         }
-        
+
         return directFiles
     }
 

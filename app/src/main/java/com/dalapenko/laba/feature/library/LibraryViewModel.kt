@@ -1,13 +1,17 @@
 package com.dalapenko.laba.feature.library
 
 import android.content.ContentResolver
-import android.content.Intent
+import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dalapenko.laba.core.data.BookRepository
+import com.dalapenko.laba.core.data.BookWithProgress
+import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.database.entity.TrackEntity
 import com.dalapenko.laba.core.media.PlaybackController
-import com.dalapenko.laba.core.media.PlaylistItem
+import com.dalapenko.laba.core.media.PlaybackPreparer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -16,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -27,8 +32,10 @@ data class PlaybackStatus(
 
 class LibraryViewModel(
     private val repository: BookRepository,
+    private val progressRepository: ProgressRepository,
     private val scanner: FolderScanner,
     private val playbackController: PlaybackController,
+    private val playbackPreparer: PlaybackPreparer,
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<LibraryEvent>(extraBufferCapacity = 1)
@@ -52,8 +59,12 @@ class LibraryViewModel(
     // Tracks for the currently-playing book; used to compute live progress fraction.
     private val _currentBookTracks = MutableStateFlow<Pair<Long, List<TrackEntity>>?>(null)
 
+    // Single shared subscription to avoid two parallel Room queries for the same data.
+    private val allBooksFlow = repository.observeAllBooksWithProgress()
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
+
     val books: StateFlow<List<BookWithProgress>> = combine(
-        repository.observeAllBooksWithProgress(),
+        allBooksFlow,
         playbackController.currentBookId,
         playbackController.playerState,
         _currentBookTracks,
@@ -87,7 +98,7 @@ class LibraryViewModel(
     val scanResult: StateFlow<ScanResult?> = _scanResult.asStateFlow()
 
     init {
-        viewModelScope.launch { _lastPlayedBookId.value = repository.getLastPlayedBookId() }
+        viewModelScope.launch { _lastPlayedBookId.value = progressRepository.getLastPlayedBookId() }
         // Silently fill in covers for books added before cover extraction existed
         viewModelScope.launch { resyncMissingCovers() }
         viewModelScope.launch { repository.recheckAllAvailability(scanner) }
@@ -104,7 +115,7 @@ class LibraryViewModel(
         // Purge in-memory snapshots for books that no longer exist in the library.
         // Runs on every DB change (including deletes) so the map never grows unboundedly.
         viewModelScope.launch {
-            repository.observeAllBooksWithProgress().collect { bookList ->
+            allBooksFlow.collect { bookList ->
                 val activeIds = bookList.map { it.book.id }.toSet()
                 playbackController.cleanupOldSnapshots(activeIds)
             }
@@ -141,65 +152,25 @@ class LibraryViewModel(
             val (book, tracks) = result
             _currentBookTracks.value = bookId to tracks
 
-            // Pre-populate playerState from saved progress BEFORE setPlaylist so the
-            // isLoadingPlaylist lock prevents Media3's zero-state from overwriting it,
-            // keeping the library progress bar smooth (same technique as PlayerViewModel).
-            val progress = repository.getProgress(bookId)
-            val savedTrackIndex = if (progress != null && !progress.isCompleted)
-                tracks.indexOfFirst { it.id == progress.lastTrackId }.takeIf { it >= 0 }
-            else null
-
-            if (savedTrackIndex != null && progress != null) {
-                playbackController.setInitialState(
-                    position = progress.lastPositionMs,
-                    duration = tracks[savedTrackIndex].durationMs,
-                    trackIndex = savedTrackIndex,
-                    speed = progress.playbackSpeed.coerceIn(0.5f, 2.0f),
-                )
-            } else {
-                playbackController.setInitialState(
-                    position = 0L,
-                    duration = tracks.firstOrNull()?.durationMs ?: 0L,
-                    trackIndex = 0,
-                    speed = 1.0f,
-                )
-            }
-
-            val items = tracks.map { track ->
-                PlaylistItem(
-                    uri = track.fileUri,
-                    title = track.fileName,
-                    artist = book.author,
-                    artworkUri = book.coverUri,
-                )
-            }
-            playbackController.setPlaylist(items, bookId)
-
-            if (savedTrackIndex != null && progress != null) {
-                playbackController.seekToTrack(savedTrackIndex, progress.lastPositionMs)
-                playbackController.setSpeed(progress.playbackSpeed.coerceIn(0.5f, 2.0f))
-            }
-            playbackController.play()
+            playbackPreparer.setupPlayback(bookId, book, tracks, autoPlay = true)
         }
     }
 
     // ── Import ────────────────────────────────────────────────────────────────
 
+    private fun ContentResolver.acquireUriPermission(uri: Uri) {
+        try {
+            takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION or FLAG_GRANT_WRITE_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
     fun onFolderPicked(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch {
             _isScanning.value = true
             try {
-                try {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                    )
-                } catch (_: SecurityException) {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                    )
-                }
+                contentResolver.acquireUriPermission(uri)
                 val scannedBooks = scanner.scanFolderTree(uri)
                 if (scannedBooks.isEmpty()) {
                     _scanResult.value = ScanResult.Empty
@@ -210,7 +181,7 @@ class LibraryViewModel(
                         val book = scanner.toBookEntity(scanned)
                         val tracks = scanner.toTrackEntities(scanned)
                         val id = repository.addBookIfNew(book, tracks)
-                        if (id != -1L) addedCount++
+                        if (id != null) addedCount++
                     }
                     _scanResult.value = when {
                         addedCount == 0 -> ScanResult.Duplicate
@@ -229,17 +200,7 @@ class LibraryViewModel(
         viewModelScope.launch {
             _isScanning.value = true
             try {
-                try {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                    )
-                } catch (_: SecurityException) {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                    )
-                }
+                contentResolver.acquireUriPermission(uri)
                 val scanned = scanner.scanSingleFile(uri)
                 if (scanned == null) {
                     _scanResult.value = ScanResult.Empty
@@ -329,3 +290,4 @@ sealed interface ScanResult {
     data object Duplicate : ScanResult
     data object PermissionError : ScanResult
 }
+
