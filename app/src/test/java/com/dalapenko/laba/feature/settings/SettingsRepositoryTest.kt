@@ -80,7 +80,7 @@ class SettingsRepositoryTest {
  */
 private class FakePreferencesDataStore : DataStore<Preferences> {
 
-    private val prefsFlow = MutableStateFlow<Preferences>(emptyPreferences())
+    private val prefsFlow = MutableStateFlow(emptyPreferences())
 
     override val data: Flow<Preferences> = prefsFlow
 

@@ -35,7 +35,26 @@ private data class AudioMeta(
     val author: String?,
     val durationMs: Long,
     val embeddedPictureBytes: ByteArray?,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AudioMeta) return false
+        return title == other.title &&
+            album == other.album &&
+            author == other.author &&
+            durationMs == other.durationMs &&
+            embeddedPictureBytes.contentEquals(other.embeddedPictureBytes)
+    }
+
+    override fun hashCode(): Int {
+        var result = title.hashCode()
+        result = 31 * result + album.hashCode()
+        result = 31 * result + author.hashCode()
+        result = 31 * result + durationMs.hashCode()
+        result = 31 * result + embeddedPictureBytes.contentHashCode()
+        return result
+    }
+}
 
 class FolderScanner(private val context: Context) {
 

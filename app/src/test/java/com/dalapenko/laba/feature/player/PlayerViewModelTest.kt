@@ -166,7 +166,7 @@ class PlayerViewModelTest {
 
         coVerify {
             mockProgressRepository.saveProgress(
-                match { it.isCompleted == false && it.lastPositionMs == 0L }
+                match { !it.isCompleted && it.lastPositionMs == 0L }
             )
         }
     }

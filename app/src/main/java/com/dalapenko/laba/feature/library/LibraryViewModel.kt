@@ -54,7 +54,14 @@ class LibraryViewModel(
             isPlaying = isLoaded && state.isPlaying,
             isMediaLoaded = isLoaded,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackStatus(null, false, false))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(
+        stopTimeoutMillis = 5000),
+        initialValue = PlaybackStatus(
+            activeBookId = null,
+            isPlaying = false,
+            isMediaLoaded = false
+        )
+    )
 
     // Tracks for the currently-playing book; used to compute live progress fraction.
     private val _currentBookTracks = MutableStateFlow<Pair<Long, List<TrackEntity>>?>(null)

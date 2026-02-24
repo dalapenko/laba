@@ -9,13 +9,13 @@ import kotlinx.coroutines.flow.map
 
 class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
-    private val THEME_MODE = stringPreferencesKey("theme_mode")
+    private val themeModePref = stringPreferencesKey("theme_mode")
 
     val themeMode: Flow<ThemeMode> = dataStore.data.map { prefs ->
-        ThemeMode.valueOf(prefs[THEME_MODE] ?: ThemeMode.SYSTEM.name)
+        ThemeMode.valueOf(prefs[themeModePref] ?: ThemeMode.SYSTEM.name)
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
-        dataStore.edit { it[THEME_MODE] = mode.name }
+        dataStore.edit { it[themeModePref] = mode.name }
     }
 }
