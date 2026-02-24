@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,11 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
     alias(libs.plugins.detekt)
+}
+
+val localProperties = Properties()
+rootProject.file("local.properties").also { f ->
+    if (f.exists()) f.inputStream().use { localProperties.load(it) }
 }
 
 android {
@@ -16,17 +23,30 @@ android {
         minSdk = 27
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         @Suppress("UnstableApiUsage")
         androidResources.localeFilters.addAll(setOf("en", "ru"))
+
+        buildConfigField("String", "STORE_LABEL", "\"\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProperties.getProperty("signing.storeFile") ?: "")
+            storePassword = localProperties.getProperty("signing.storePassword") ?: ""
+            keyAlias = localProperties.getProperty("signing.keyAlias") ?: ""
+            keyPassword = localProperties.getProperty("signing.keyPassword") ?: ""
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -49,6 +69,10 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+base {
+    archivesName.set("laba")
 }
 
 room {

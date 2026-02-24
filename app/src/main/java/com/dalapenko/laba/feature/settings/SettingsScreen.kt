@@ -139,13 +139,13 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_version)) },
                 supportingContent = {
-                    Text(
-                        stringResource(
-                            R.string.settings_version_value,
-                            BuildConfig.VERSION_NAME,
-                            BuildConfig.VERSION_CODE,
-                        )
-                    )
+                    val storeLabel = if (BuildConfig.DEBUG) "debug" else BuildConfig.STORE_LABEL
+                    val versionText = stringResource(
+                        R.string.settings_version_value,
+                        BuildConfig.VERSION_NAME,
+                        BuildConfig.VERSION_CODE,
+                    ) + if (storeLabel.isNotEmpty()) " $storeLabel" else ""
+                    Text(versionText)
                 },
                 leadingContent = {
                     Icon(
