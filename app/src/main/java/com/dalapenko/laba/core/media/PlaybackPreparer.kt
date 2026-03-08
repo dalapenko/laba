@@ -2,10 +2,8 @@ package com.dalapenko.laba.core.media
 
 import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.database.entity.BookEntity
+import com.dalapenko.laba.core.database.entity.ProgressEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
-
-private const val MIN_PLAYBACK_SPEED = 0.5f
-private const val MAX_PLAYBACK_SPEED = 2.0f
 
 class PlaybackPreparer(
     private val progressRepository: ProgressRepository,
@@ -32,6 +30,31 @@ class PlaybackPreparer(
             null
         }
 
+        applyInitialState(progress, targetTrackIndex, tracks)
+
+        playbackController.setPlaylist(buildPlaylistItems(tracks, book), bookId)
+        playbackController.setBookMetadata(
+            bookId = bookId,
+            trackIds = tracks.map { it.id },
+            trackDurations = tracks.map { it.durationMs },
+        )
+
+        val targetSpeed = progress?.playbackSpeed
+            ?.takeIf { targetTrackIndex != null && progress != null }
+            ?.coerceIn(MIN_PLAYBACK_SPEED, MAX_PLAYBACK_SPEED)
+            ?: DEFAULT_PLAYBACK_SPEED
+        playbackController.setSpeed(targetSpeed)
+
+        resumeOrResetProgress(targetTrackIndex, progress, tracks)
+
+        if (autoPlay) playbackController.play()
+    }
+
+    private fun applyInitialState(
+        progress: ProgressEntity?,
+        targetTrackIndex: Int?,
+        tracks: List<TrackEntity>,
+    ) {
         if (targetTrackIndex != null && progress != null) {
             playbackController.setInitialState(
                 position = progress.lastPositionMs,
@@ -44,11 +67,13 @@ class PlaybackPreparer(
                 position = 0L,
                 duration = tracks.firstOrNull()?.durationMs ?: 0L,
                 trackIndex = 0,
-                speed = 1.0f,
+                speed = DEFAULT_PLAYBACK_SPEED,
             )
         }
+    }
 
-        val items = tracks.map { track ->
+    private fun buildPlaylistItems(tracks: List<TrackEntity>, book: BookEntity): List<PlaylistItem> {
+        return tracks.map { track ->
             PlaylistItem(
                 uri = track.fileUri,
                 title = track.fileName,
@@ -56,17 +81,15 @@ class PlaybackPreparer(
                 artworkUri = book.coverUri,
             )
         }
-        playbackController.setPlaylist(items, bookId)
+    }
 
-        playbackController.setBookMetadata(
-            bookId = bookId,
-            trackIds = tracks.map { it.id },
-            trackDurations = tracks.map { it.durationMs },
-        )
-
+    private suspend fun resumeOrResetProgress(
+        targetTrackIndex: Int?,
+        progress: ProgressEntity?,
+        tracks: List<TrackEntity>,
+    ) {
         if (targetTrackIndex != null && progress != null) {
             playbackController.seekToTrack(targetTrackIndex, progress.lastPositionMs)
-            playbackController.setSpeed(progress.playbackSpeed.coerceIn(MIN_PLAYBACK_SPEED, MAX_PLAYBACK_SPEED))
         } else if (progress?.isCompleted == true) {
             progressRepository.saveProgress(
                 progress.copy(
@@ -78,7 +101,9 @@ class PlaybackPreparer(
                 )
             )
         }
-
-        if (autoPlay) playbackController.play()
     }
 }
+
+private const val MIN_PLAYBACK_SPEED = 0.5f
+private const val MAX_PLAYBACK_SPEED = 2.0f
+private const val DEFAULT_PLAYBACK_SPEED = 1.0f
