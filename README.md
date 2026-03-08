@@ -21,9 +21,9 @@ No accounts. No cloud. Just your books.
 
 ## Screenshots
 
-| Library                                    | Player                                   | Chapter Select                               | Settings                                     |
-|--------------------------------------------|------------------------------------------|----------------------------------------------|----------------------------------------------|
-| ![Library](./docs/screenshots/library.jpg) | ![Player](./docs/screenshots/player.jpg) | ![Chapters](./docs/screenshots/chapters.jpg) | ![Settings](./docs/screenshots/settings.jpg) |
+| Library                                      | Player                                     | Chapter Select                                 | Settings                                       |
+|----------------------------------------------|--------------------------------------------|------------------------------------------------|------------------------------------------------|
+| ![Library](./assets/screenshots/library.jpg) | ![Player](./assets/screenshots/player.jpg) | ![Chapters](./assets/screenshots/chapters.jpg) | ![Settings](./assets/screenshots/settings.jpg) |
 
 ---
 
@@ -56,17 +56,17 @@ No accounts. No cloud. Just your books.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| UI | Jetpack Compose + Material 3 |
-| Architecture | MVVM · StateFlow · Repository |
-| DI | Koin 4.x |
-| Media | Media3 ExoPlayer + MediaSessionService |
-| Database | Room (KSP) |
-| Storage | DataStore Preferences |
-| Background | WorkManager |
-| Images | Coil |
-| Navigation | Navigation Compose (type-safe) |
+| Layer        | Technology                             |
+|--------------|----------------------------------------|
+| UI           | Jetpack Compose + Material 3           |
+| Architecture | MVVM · StateFlow · Repository          |
+| DI           | Koin 4.x                               |
+| Media        | Media3 ExoPlayer + MediaSessionService |
+| Database     | Room (KSP)                             |
+| Storage      | DataStore Preferences                  |
+| Background   | WorkManager                            |
+| Images       | Coil                                   |
+| Navigation   | Navigation Compose (type-safe)         |
 
 ---
 
