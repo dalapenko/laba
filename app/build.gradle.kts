@@ -39,18 +39,22 @@ android {
         buildConfigField("String", "STORE_LABEL", "\"\"")
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file(localProperties.getProperty("signing.storeFile") ?: "")
-            storePassword = localProperties.getProperty("signing.storePassword") ?: ""
-            keyAlias = localProperties.getProperty("signing.keyAlias") ?: ""
-            keyPassword = localProperties.getProperty("signing.keyPassword") ?: ""
+    val hasSigningConfig = !localProperties.getProperty("signing.storeFile").isNullOrEmpty()
+
+    if (hasSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(localProperties.getProperty("signing.storeFile"))
+                storePassword = localProperties.getProperty("signing.storePassword") ?: ""
+                keyAlias = localProperties.getProperty("signing.keyAlias") ?: ""
+                keyPassword = localProperties.getProperty("signing.keyPassword") ?: ""
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasSigningConfig) signingConfigs.getByName("release") else null
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
