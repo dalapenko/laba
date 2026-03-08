@@ -81,4 +81,5 @@
     <string name="settings_third_party_section">Сторонние библиотеки</string>
     <string name="settings_licenses_text">- Jetpack Compose (Apache 2.0)\n- Koin (Apache 2.0)\n- Media3 / ExoPlayer (Apache 2.0)\n- Room (Apache 2.0)\n- Coil (Apache 2.0)\n- Kotlin &amp; Kotlinx (Apache 2.0)\n\nhttps://www.apache.org/licenses/LICENSE-2.0</string>
     <string name="settings_licenses_close">Закрыть</string>
+    <string name="settings_privacy_policy">Политика конфиденциальности</string>
 </resources>
