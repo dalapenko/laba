@@ -47,7 +47,7 @@ jobs:
         run: ./gradlew :app:lintRelease
 
       - name: Run Unit Tests
-        run: ./gradlew :app:testReleaseUnitTest
+        run: ./gradlew :app:testDebugUnitTest
 
       - name: Upload Lint Report
         if: failure()
@@ -60,5 +60,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: test-report-release
-          path: app/build/reports/tests/testReleaseUnitTest/
+          name: test-report-debug
+          path: app/build/reports/tests/testDebugUnitTest/
