@@ -12,6 +12,9 @@
 .cxx
 local.properties
 
+# Firebase (contains project credentials — never commit)
+app/google-services.json
+
 # AI
 .beads
 .claude

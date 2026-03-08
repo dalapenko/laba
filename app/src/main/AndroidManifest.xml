@@ -20,6 +20,19 @@
         android:theme="@style/Theme.Laba"
         tools:ignore="UnusedAttribute">
 
+        <!-- Firebase: disable Advertising ID (no ads/tracking in this app; avoids GDPR consent requirement) -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <!-- Firebase: disable ad personalization signals (irrelevant for an offline audiobook app) -->
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
+        <!-- Firebase: disable automatic screen tracking (Compose handles its own navigation) -->
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

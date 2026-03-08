@@ -40,7 +40,7 @@ class PlaybackPreparer(
         )
 
         val targetSpeed = progress?.playbackSpeed
-            ?.takeIf { targetTrackIndex != null && progress != null }
+            ?.takeIf { targetTrackIndex != null }
             ?.coerceIn(MIN_PLAYBACK_SPEED, MAX_PLAYBACK_SPEED)
             ?: DEFAULT_PLAYBACK_SPEED
         playbackController.setSpeed(targetSpeed)

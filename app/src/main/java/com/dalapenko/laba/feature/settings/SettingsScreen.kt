@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
@@ -49,6 +50,7 @@ import com.dalapenko.laba.R
 import org.koin.androidx.compose.koinViewModel
 
 private const val GITHUB_URL = "https://github.com/dalapenko/laba"
+private const val PRIVACY_POLICY_URL = "https://dalapenko.github.io/laba/privacy-policy"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -191,6 +193,31 @@ fun SettingsScreen(
                     )
                 },
                 modifier = Modifier.clickable { uriHandler.openUri(GITHUB_URL) },
+            )
+
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_privacy_policy)) },
+                supportingContent = {
+                    Text(
+                        text = PRIVACY_POLICY_URL,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        Icons.Outlined.Policy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                trailingContent = {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                modifier = Modifier.clickable { uriHandler.openUri(PRIVACY_POLICY_URL) },
             )
 
             ListItem(

@@ -9,6 +9,12 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
+// Apply Firebase plugins only when google-services.json is present (release builds / CI)
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+}
+
 val localProperties = Properties()
 rootProject.file("local.properties").also { f ->
     if (f.exists()) f.inputStream().use { localProperties.load(it) }
@@ -75,6 +81,17 @@ base {
     archivesName.set("laba")
 }
 
+tasks.whenTaskAdded {
+    if (name == "assembleRelease") {
+        doFirst {
+            if (!file("google-services.json").exists()) {
+                val message = "google-services.json is missing — release build requires Firebase config"
+                if (System.getenv("CI") != null) error(message) else logger.warn("WARNING: $message")
+            }
+        }
+    }
+}
+
 room {
     schemaDirectory("$projectDir/schemas")
 }
@@ -134,6 +151,12 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+
+    // Firebase (release only — requires google-services.json; excluded from debug builds)
+    val firebaseBom = platform(libs.firebase.bom)
+    releaseImplementation(firebaseBom)
+    releaseImplementation(libs.firebase.analytics)
+    releaseImplementation(libs.firebase.crashlytics)
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)

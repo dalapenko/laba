@@ -95,6 +95,7 @@
     <string name="settings_author">Author</string>
     <string name="settings_author_value" translatable="false">dalapenko</string>
     <string name="settings_github">Source Code</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_licenses">Open Source Licenses</string>
     <string name="settings_licenses_description">Third-party libraries used in this app</string>
     <string name="settings_app_license_section" translatable="false">LABA — MIT License</string>
