@@ -61,10 +61,16 @@ class BookRepository(
             bookId
         }
 
-    suspend fun addBookIfNew(book: BookEntity, tracks: List<TrackEntity>): Long? {
-        if (bookDao.existsByRootUri(book.rootFolderUri)) return null
-        return addBook(book, tracks)
-    }
+    suspend fun addBookIfNew(book: BookEntity, tracks: List<TrackEntity>): Long? =
+        database.withTransaction {
+            // existsByRootUri check MUST be inside the same transaction as insert to prevent
+            // a TOCTOU race: two concurrent calls could both pass the check and then both
+            // attempt the insert, triggering UNIQUE constraint violation on rootFolderUri.
+            if (bookDao.existsByRootUri(book.rootFolderUri)) return@withTransaction null
+            val bookId = bookDao.insert(book)
+            trackDao.insertAll(tracks.map { it.copy(bookId = bookId) })
+            bookId
+        }
 
     suspend fun getAllBooks(): List<BookEntity> = bookDao.getAll()
 

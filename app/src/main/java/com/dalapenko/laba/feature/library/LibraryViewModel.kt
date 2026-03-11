@@ -214,8 +214,8 @@ class LibraryViewModel(
                 } else {
                     val book = scanner.toBookEntity(scanned)
                     val tracks = scanner.toTrackEntities(scanned)
-                    repository.addBook(book, tracks)
-                    _scanResult.value = ScanResult.Success(scanned.title)
+                    val id = repository.addBookIfNew(book, tracks)
+                    _scanResult.value = if (id != null) ScanResult.Success(scanned.title) else ScanResult.Duplicate
                 }
             } catch (_: SecurityException) {
                 _scanResult.value = ScanResult.PermissionError

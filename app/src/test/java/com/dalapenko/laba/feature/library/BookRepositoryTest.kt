@@ -14,6 +14,7 @@ import com.dalapenko.laba.testTrack
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import androidx.room.withTransaction
@@ -65,6 +66,37 @@ class BookRepositoryTest {
         val result = repository.addBookIfNew(book, emptyList())
 
         assertEquals(5L, result)
+    }
+
+    @Test
+    fun givenNewBook_whenAddBookIfNew_thenExistenceCheckAndInsertAreAtomic() = runTest {
+        // Regression test: existsByRootUri must be called INSIDE withTransaction, not before.
+        // If the check runs outside the transaction (old TOCTOU bug), two concurrent callers
+        // could both pass the guard and both attempt insert → UNIQUE constraint crash.
+        val book = testBook()
+        val transactionInvocations = mutableListOf<String>()
+
+        coEvery { mockDatabase.withTransaction<Any?>(any()) } coAnswers {
+            transactionInvocations += "txStart"
+            @Suppress("UNCHECKED_CAST")
+            (args[1] as suspend () -> Any?)()
+        }
+        coEvery { bookDao.existsByRootUri(book.rootFolderUri) } answers {
+            check(transactionInvocations.isNotEmpty()) {
+                "existsByRootUri called OUTSIDE the transaction — TOCTOU race condition!"
+            }
+            false
+        }
+        coEvery { bookDao.insert(book) } returns 1L
+        coJustRun { trackDao.insertAll(any()) }
+
+        repository.addBookIfNew(book, emptyList())
+
+        coVerifyOrder {
+            mockDatabase.withTransaction<Any?>(any())
+            bookDao.existsByRootUri(book.rootFolderUri)
+            bookDao.insert(book)
+        }
     }
 
     @Test
