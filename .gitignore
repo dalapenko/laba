@@ -15,6 +15,9 @@ local.properties
 # Firebase (contains project credentials — never commit)
 app/google-services.json
 
+# Benchmark
+baselineprofile/build
+
 # AI
 .beads
 .claude

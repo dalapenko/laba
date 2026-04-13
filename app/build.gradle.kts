@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.android.baselineprofile)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -162,6 +163,9 @@ dependencies {
     releaseImplementation(libs.firebase.analytics)
     releaseImplementation(libs.firebase.crashlytics)
 
+    // Profile Installer (enables Baseline Profile installation for benchmarks)
+    implementation(libs.androidx.profileinstaller)
+
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
@@ -190,4 +194,12 @@ dependencies {
     // Fix for drawerlayout resource linking issue in tests
     debugImplementation(libs.androidx.drawerlayout)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// Wire the baselineprofile producer module so that:
+//   ./gradlew :app:generateReleaseBaselineProfile
+// runs the generator, copies the result into src/main/baselineProfiles/,
+// and packages it into the release APK.
+baselineProfile {
+    from(project(":baselineprofile"))
 }

@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep ProfileInstallReceiver so macrobenchmark can install baseline profiles via broadcast.
+# Without this rule R8 strips the class from the release APK, causing:
+# "The baseline profile install broadcast was not received."
+-keep class androidx.profileinstaller.ProfileInstallReceiver { *; }

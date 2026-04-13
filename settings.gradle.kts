@@ -26,3 +26,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "laba"
 include(":app")
+include(":baselineprofile")
