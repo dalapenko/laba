@@ -80,7 +80,7 @@ class NaturalCompareTest {
         val sorted = files.sortedWith(Comparator { a, b -> naturalCompare(a, b) })
         assertEquals(
             listOf("Chapter 1.mp3", "Chapter 2.mp3", "Chapter 10.mp3", "Chapter 20.mp3"),
-            sorted
+            sorted,
         )
     }
 
@@ -90,7 +90,7 @@ class NaturalCompareTest {
         val sorted = files.sortedWith(Comparator { a, b -> naturalCompare(a, b) })
         assertEquals(
             listOf("1 - Track.mp3", "2 - Track.mp3", "03 - Track.mp3", "10 - Track.mp3"),
-            sorted
+            sorted,
         )
     }
 

@@ -27,8 +27,8 @@ class MainActivity : AppCompatActivity() {
             val systemDark = isSystemInDarkTheme()
             val darkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> systemDark
-                ThemeMode.LIGHT  -> false
-                ThemeMode.DARK   -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
             }
             LabaTheme(darkTheme = darkTheme) {
                 Surface {

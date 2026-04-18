@@ -32,10 +32,10 @@ data class PlaybackStatus(
 )
 
 enum class ContinueBookStatus {
-    Continue,
-    Playing,
-    Paused,
-    LastPlayed,
+    CONTINUE,
+    PLAYING,
+    PAUSED,
+    LAST_PLAYED,
 }
 
 data class ContinueBookUiState(
@@ -98,14 +98,17 @@ class LibraryViewModel(
             ?: return@combine dbBooks
         if (tracks.isEmpty()) return@combine dbBooks
         dbBooks.map { item ->
-            if (item.book.id != activeBookId) item
-            else {
+            if (item.book.id != activeBookId) {
+                item
+            } else {
                 val currentIndex = playerState.currentMediaItemIndex.coerceIn(0, tracks.lastIndex)
                 val completedTracksMs = tracks.take(currentIndex).sumOf { it.durationMs }
                 val absolute = completedTracksMs + playerState.currentPositionMs
-                val liveFraction = if (item.book.totalDurationMs > 0)
+                val liveFraction = if (item.book.totalDurationMs > 0) {
                     (absolute.toFloat() / item.book.totalDurationMs).coerceIn(0f, 1f)
-                else 0f
+                } else {
+                    0f
+                }
                 item.copy(progressFraction = liveFraction)
             }
         }
@@ -125,7 +128,7 @@ class LibraryViewModel(
             activeBook != null && activeBook.progress?.isCompleted != true -> {
                 ContinueBookUiState(
                     book = activeBook,
-                    status = if (playerState.isPlaying) ContinueBookStatus.Playing else ContinueBookStatus.Paused,
+                    status = if (playerState.isPlaying) ContinueBookStatus.PLAYING else ContinueBookStatus.PAUSED,
                 )
             }
 
@@ -135,8 +138,11 @@ class LibraryViewModel(
                 if (lastPlayedBook.progress?.isCompleted == true) return@combine null
                 ContinueBookUiState(
                     book = lastPlayedBook,
-                    status = if (lastPlayedBook.isAvailable) ContinueBookStatus.Continue
-                    else ContinueBookStatus.LastPlayed,
+                    status = if (lastPlayedBook.isAvailable) {
+                        ContinueBookStatus.CONTINUE
+                    } else {
+                        ContinueBookStatus.LAST_PLAYED
+                    },
                 )
             }
 

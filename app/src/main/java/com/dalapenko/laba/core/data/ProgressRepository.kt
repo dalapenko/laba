@@ -13,9 +13,6 @@ class ProgressRepository(private val progressDao: ProgressDao) {
     suspend fun getProgress(bookId: Long): ProgressEntity? =
         progressDao.getByBook(bookId)
 
-    suspend fun getLastPlayedBookId(): Long? =
-        progressDao.getLastPlayed()?.bookId
-
     fun observeLastPlayedBookId(): Flow<Long?> =
         progressDao.observeLastPlayedBookId()
 }

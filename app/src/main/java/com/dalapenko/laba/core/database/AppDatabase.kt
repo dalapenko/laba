@@ -37,24 +37,26 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Recreate progress table with FK constraint (SQLite requires table recreation for FK)
-                db.execSQL("""
-                    CREATE TABLE progress_new (
-                        bookId INTEGER NOT NULL PRIMARY KEY,
-                        lastTrackId INTEGER NOT NULL,
-                        lastPositionMs INTEGER NOT NULL,
-                        completedTracksMs INTEGER NOT NULL DEFAULT 0,
-                        lastUpdated INTEGER NOT NULL,
-                        isCompleted INTEGER NOT NULL DEFAULT 0,
-                        playbackSpeed REAL NOT NULL DEFAULT 1.0,
-                        FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
-                    )
-                """.trimIndent())
+                db.execSQL(
+                    """
+                        CREATE TABLE progress_new (
+                            bookId INTEGER NOT NULL PRIMARY KEY,
+                            lastTrackId INTEGER NOT NULL,
+                            lastPositionMs INTEGER NOT NULL,
+                            completedTracksMs INTEGER NOT NULL DEFAULT 0,
+                            lastUpdated INTEGER NOT NULL,
+                            isCompleted INTEGER NOT NULL DEFAULT 0,
+                            playbackSpeed REAL NOT NULL DEFAULT 1.0,
+                            FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
+                        )
+                    """.trimIndent(),
+                )
                 db.execSQL("INSERT INTO progress_new SELECT * FROM progress")
                 db.execSQL("DROP TABLE progress")
                 db.execSQL("ALTER TABLE progress_new RENAME TO progress")
                 // Add unique index to books
                 db.execSQL(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS index_books_rootFolderUri ON books(rootFolderUri)"
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_books_rootFolderUri ON books(rootFolderUri)",
                 )
             }
         }

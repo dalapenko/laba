@@ -111,7 +111,7 @@ class PlayerViewModelTest {
         val book = testBook(id = bookId)
         val tracks = listOf(testTrack(bookId = bookId))
         coEvery { mockRepository.getBookWithTracks(bookId) } returns (book to tracks)
-        currentBookIdFlow.value = bookId  // already active
+        currentBookIdFlow.value = bookId // already active
 
         createViewModel()
         advanceUntilIdle()
@@ -166,7 +166,7 @@ class PlayerViewModelTest {
 
         coVerify {
             mockProgressRepository.saveProgress(
-                match { !it.isCompleted && it.lastPositionMs == 0L }
+                match { !it.isCompleted && it.lastPositionMs == 0L },
             )
         }
     }
@@ -202,7 +202,7 @@ class PlayerViewModelTest {
         val book = testBook(id = bookId)
         val tracks = listOf(testTrack(bookId = bookId))
         coEvery { mockRepository.getBookWithTracks(bookId) } returns (book to tracks)
-        currentBookIdFlow.value = 999L  // different book
+        currentBookIdFlow.value = 999L // different book
         val vm = createViewModel()
         advanceUntilIdle()
 
@@ -217,7 +217,7 @@ class PlayerViewModelTest {
     @Test
     fun givenTrackIndexExceedsTrackCount_whenPlayerStateEmitted_thenUiStateNotUpdated() = runTest {
         val book = testBook(id = bookId)
-        val tracks = listOf(testTrack(bookId = bookId))  // only 1 track, index 0
+        val tracks = listOf(testTrack(bookId = bookId)) // only 1 track, index 0
         coEvery { mockRepository.getBookWithTracks(bookId) } returns (book to tracks)
         currentBookIdFlow.value = bookId
         val vm = createViewModel()
@@ -283,7 +283,7 @@ class PlayerViewModelTest {
             currentMediaItemIndex = 0,
             currentPositionMs = 59_500L,
             durationMs = 60_000L,
-            isPlaying = true,  // still playing
+            isPlaying = true, // still playing
         )
         advanceUntilIdle()
 
@@ -326,7 +326,7 @@ class PlayerViewModelTest {
             currentPositionMs = 29_500L,
             currentMediaItemIndex = 0,
             durationMs = 30_000L,
-            isPlaying = false
+            isPlaying = false,
         )
         coEvery { mockRepository.getBookWithTracks(bookId) } returns (book to tracks)
         every { mockController.getBookSnapshot(bookId) } returns snapshotState
@@ -344,7 +344,7 @@ class PlayerViewModelTest {
                 match {
                     it.lastPositionMs == 29_500L &&
                         it.isCompleted
-                }
+                },
             )
         }
     }
@@ -367,16 +367,16 @@ class PlayerViewModelTest {
             currentPositionMs = 29_500L,
             currentMediaItemIndex = 2,
             durationMs = 30_000L,
-            isPlaying = false
+            isPlaying = false,
         )
         advanceUntilIdle()
 
         coVerify {
             mockProgressRepository.saveProgress(
                 match {
-                    it.completedTracksMs == 30_000L &&  // tracks 0+1 = 10000+20000
+                    it.completedTracksMs == 30_000L && // tracks 0+1 = 10000+20000
                         it.isCompleted
-                }
+                },
             )
         }
     }
@@ -394,7 +394,7 @@ class PlayerViewModelTest {
             currentPositionMs = 29_500L,
             currentMediaItemIndex = 0,
             durationMs = 30_000L,
-            isPlaying = false
+            isPlaying = false,
         )
         advanceUntilIdle()
 

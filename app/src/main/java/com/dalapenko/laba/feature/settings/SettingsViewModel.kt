@@ -17,8 +17,11 @@ class SettingsViewModel(private val repo: SettingsRepository) : ViewModel() {
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { repo.setThemeMode(mode) }
 
     fun setLanguage(tag: String?) {
-        val locales = if (tag == null) LocaleListCompat.getEmptyLocaleList()
-                      else LocaleListCompat.forLanguageTags(tag)
+        val locales = if (tag == null) {
+            LocaleListCompat.getEmptyLocaleList()
+        } else {
+            LocaleListCompat.forLanguageTags(tag)
+        }
         AppCompatDelegate.setApplicationLocales(locales)
     }
 }

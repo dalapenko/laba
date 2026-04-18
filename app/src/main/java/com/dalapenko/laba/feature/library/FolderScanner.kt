@@ -4,14 +4,14 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.util.Log
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.dalapenko.laba.core.database.entity.BookEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.core.net.toUri
-import android.util.Log
 
 data class ScannedBook(
     val title: String,
@@ -113,7 +113,7 @@ class FolderScanner(private val context: Context) {
                     fileName = fileName,
                     durationMs = meta.durationMs,
                     sequenceOrder = 0,
-                )
+                ),
             ),
             coverUri = coverUri,
         )
@@ -162,7 +162,7 @@ class FolderScanner(private val context: Context) {
                     rootUri = dir.uri.toString(),
                     tracks = tracks,
                     coverUri = coverUri,
-                )
+                ),
             )
         }
 
@@ -203,41 +203,41 @@ class FolderScanner(private val context: Context) {
     /**
      * Lightweight check: returns true if the root folder/file URI is still accessible.
      * Does NOT open MediaMetadataRetriever — only tests DocumentFile existence.
-     * 
+     *
      * Uses multiple strategies to bypass DocumentFile caching issues that can
      * occur when files are deleted and then restored from trash.
      */
     suspend fun isBookAvailable(rootFolderUri: String): Boolean = withContext(Dispatchers.IO) {
         val uri = rootFolderUri.toUri()
         val isTree = isTreeUri(uri)
-        
+
         // For single files: try to open input stream (most reliable)
         if (!isTree) {
             try {
-                context.contentResolver.openInputStream(uri)?.use { 
+                context.contentResolver.openInputStream(uri)?.use {
                     return@withContext true
                 }
             } catch (_: Exception) {
                 return@withContext false
             }
         }
-        
+
         // For tree URIs (folders): verify folder exists and has audio files
         try {
             val doc = DocumentFile.fromTreeUri(context, uri) ?: return@withContext false
-            
+
             // First check if folder itself exists
             if (!doc.exists()) return@withContext false
-            
+
             // Force DocumentFile to re-query by checking listFiles()
             // This is more reliable than exists() for tree URIs
             val files = doc.listFiles()
-            
+
             // Check if we have any audio files (not just any files)
             val hasAudioFiles = files.any { file ->
                 file.isFile && file.type?.startsWith("audio/") == true
             }
-            
+
             return@withContext hasAudioFiles
         } catch (_: SecurityException) {
             return@withContext false
@@ -249,7 +249,7 @@ class FolderScanner(private val context: Context) {
                     arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
                     null,
                     null,
-                    null
+                    null,
                 )?.use { cursor ->
                     return@withContext cursor.count > 0
                 }
@@ -364,7 +364,7 @@ class FolderScanner(private val context: Context) {
     private fun saveEmbeddedArt(bytes: ByteArray, key: String): String? {
         return try {
             val coversDir = File(context.filesDir, "covers").also { it.mkdirs() }
-            val name = "${key.hashCode().toLong().and(0xFFFFFFFFL)}.jpg"
+            val name = "${key.hashCode().toLong().and(HASH_MASK_32_BIT)}.jpg"
             File(coversDir, name).also { it.writeBytes(bytes) }
                 .let { Uri.fromFile(it).toString() }
         } catch (_: Exception) {
@@ -413,6 +413,8 @@ internal fun naturalCompare(a: String, b: String): Int {
     }
     return aParts.size - bParts.size
 }
+
+private const val HASH_MASK_32_BIT = 0xFFFFFFFFL
 
 private fun splitIntoChunks(s: String): List<String> {
     val chunks = mutableListOf<String>()

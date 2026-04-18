@@ -55,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,7 +92,11 @@ private data class LibraryBookCardUiState(
     val onCoverClick: (() -> Unit)?,
 )
 
+private const val ACTIVE_COVER_OVERLAY_ALPHA = 0.45f
+private const val UNAVAILABLE_BOOK_ALPHA = 0.4f
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun LibraryScreen(
     onBookClick: (Long) -> Unit,
@@ -105,36 +110,12 @@ fun LibraryScreen(
     val scanResult by viewModel.scanResult.collectAsStateWithLifecycle()
     val playbackStatus by viewModel.playbackStatus.collectAsStateWithLifecycle()
 
-    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val msgFileNotAvailable = stringResource(R.string.snackbar_file_not_available)
     val msgFilesDeleted = stringResource(R.string.snackbar_book_and_files_deleted)
     val msgFilesDeleteFailed = stringResource(R.string.snackbar_removed_from_library_no_delete)
-    val scanResultMessage: String? = when (val result = scanResult) {
-        is ScanResult.Success -> if (result.count == 1)
-            stringResource(R.string.snackbar_added_single, result.title)
-        else
-            pluralStringResource(R.plurals.snackbar_added_books, result.count, result.count)
-        is ScanResult.Empty -> stringResource(R.string.snackbar_no_audio_files)
-        is ScanResult.PermissionError -> stringResource(R.string.snackbar_permission_denied)
-        is ScanResult.Duplicate -> stringResource(R.string.snackbar_already_in_library)
-        null -> null
-    }
-    var showFabMenu by remember { mutableStateOf(false) }
+    val scanResultMessage = scanResultMessage(scanResult)
     val bookToDelete = remember { mutableStateOf<BookWithProgress?>(null) }
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    val folderPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree(),
-    ) { uri: Uri? ->
-        uri?.let { viewModel.onFolderPicked(it, context.contentResolver) }
-    }
-
-    val filePicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri: Uri? ->
-        uri?.let { viewModel.onFilePicked(it, context.contentResolver) }
-    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -158,226 +139,415 @@ fun LibraryScreen(
         }
     }
 
+    LibraryScreenContent(
+        continueBook = continueBook,
+        books = books,
+        isScanning = isScanning,
+        isRefreshing = isRefreshing,
+        playbackStatus = playbackStatus,
+        snackbarHostState = snackbarHostState,
+        onBookClick = onBookClick,
+        onSettingsClick = onSettingsClick,
+        onTogglePlayPause = viewModel::togglePlayPause,
+        onPrepareAndPlay = viewModel::prepareAndPlay,
+        onUnavailableBookClicked = viewModel::onUnavailableBookClicked,
+        onResyncAll = viewModel::resyncAll,
+        onFolderPicked = viewModel::onFolderPicked,
+        onFilePicked = viewModel::onFilePicked,
+        onDeleteRequested = { bookToDelete.value = it },
+    )
+
+    DeleteBookDialog(
+        book = bookToDelete.value,
+        onDismiss = { bookToDelete.value = null },
+        onConfirm = { book, deleteFiles ->
+            viewModel.deleteBook(book, deleteFiles)
+            bookToDelete.value = null
+        },
+    )
+}
+
+@Composable
+private fun scanResultMessage(result: ScanResult?): String? =
+    when (result) {
+        is ScanResult.Success -> {
+            if (result.count == 1) {
+                stringResource(R.string.snackbar_added_single, result.title)
+            } else {
+                pluralStringResource(R.plurals.snackbar_added_books, result.count, result.count)
+            }
+        }
+        is ScanResult.Empty -> stringResource(R.string.snackbar_no_audio_files)
+        is ScanResult.PermissionError -> stringResource(R.string.snackbar_permission_denied)
+        is ScanResult.Duplicate -> stringResource(R.string.snackbar_already_in_library)
+        null -> null
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LibraryScreenContent(
+    continueBook: ContinueBookUiState?,
+    books: List<BookWithProgress>,
+    isScanning: Boolean,
+    isRefreshing: Boolean,
+    playbackStatus: PlaybackStatus,
+    snackbarHostState: SnackbarHostState,
+    onBookClick: (Long) -> Unit,
+    onSettingsClick: () -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onPrepareAndPlay: (Long) -> Unit,
+    onUnavailableBookClicked: () -> Unit,
+    onResyncAll: () -> Unit,
+    onFolderPicked: (Uri, android.content.ContentResolver) -> Unit,
+    onFilePicked: (Uri, android.content.ContentResolver) -> Unit,
+    onDeleteRequested: (BookWithProgress) -> Unit,
+) {
+    val context = LocalContext.current
+    var showFabMenu by remember { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let { onFolderPicked(it, context.contentResolver) }
+    }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { onFilePicked(it, context.contentResolver) }
+    }
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .testTag("library_screen"),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+            LibraryTopBar(
                 scrollBehavior = scrollBehavior,
-                actions = {
-                    IconButton(
-                        onClick = onSettingsClick,
-                        modifier = Modifier.testTag("settings_button"),
-                    ) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.cd_settings),
-                        )
-                    }
-                },
+                onSettingsClick = onSettingsClick,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            Box {
-                FloatingActionButton(
-                    onClick = { showFabMenu = true },
-                    modifier = Modifier.testTag("fab_add"),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_audiobook))
+            LibraryFabMenu(
+                expanded = showFabMenu,
+                onExpandChange = { showFabMenu = it },
+                onAddFolder = { folderPicker.launch(null) },
+                onAddFile = { filePicker.launch(arrayOf("audio/*")) },
+            )
+        },
+    ) { padding ->
+        LibraryListContent(
+            continueBook = continueBook,
+            books = books,
+            isScanning = isScanning,
+            isRefreshing = isRefreshing,
+            playbackStatus = playbackStatus,
+            onBookClick = onBookClick,
+            onTogglePlayPause = onTogglePlayPause,
+            onPrepareAndPlay = onPrepareAndPlay,
+            onUnavailableBookClicked = onUnavailableBookClicked,
+            onResyncAll = onResyncAll,
+            onDeleteRequested = onDeleteRequested,
+            modifier = Modifier.padding(padding),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LibraryTopBar(
+    scrollBehavior: TopAppBarScrollBehavior,
+    onSettingsClick: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.app_name)) },
+        scrollBehavior = scrollBehavior,
+        actions = {
+            IconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.testTag("settings_button"),
+            ) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = stringResource(R.string.cd_settings),
+                )
+            }
+        },
+    )
+}
+
+@Composable
+private fun LibraryFabMenu(
+    expanded: Boolean,
+    onExpandChange: (Boolean) -> Unit,
+    onAddFolder: () -> Unit,
+    onAddFile: () -> Unit,
+) {
+    Box {
+        FloatingActionButton(
+            onClick = { onExpandChange(true) },
+            modifier = Modifier.testTag("fab_add"),
+        ) {
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_audiobook))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandChange(false) },
+            modifier = Modifier.testTag("fab_menu"),
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_add_folder)) },
+                leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
+                onClick = {
+                    onExpandChange(false)
+                    onAddFolder()
+                },
+                modifier = Modifier.testTag("menu_add_folder"),
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_add_file)) },
+                leadingIcon = { Icon(Icons.Default.AudioFile, contentDescription = null) },
+                onClick = {
+                    onExpandChange(false)
+                    onAddFile()
+                },
+                modifier = Modifier.testTag("menu_add_file"),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryListContent(
+    continueBook: ContinueBookUiState?,
+    books: List<BookWithProgress>,
+    isScanning: Boolean,
+    isRefreshing: Boolean,
+    playbackStatus: PlaybackStatus,
+    onBookClick: (Long) -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onPrepareAndPlay: (Long) -> Unit,
+    onUnavailableBookClicked: () -> Unit,
+    onResyncAll: () -> Unit,
+    onDeleteRequested: (BookWithProgress) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onResyncAll,
+        modifier = modifier.fillMaxSize(),
+    ) {
+        if (continueBook == null && books.isEmpty() && !isScanning) {
+            EmptyLibrary(modifier = Modifier.align(Alignment.Center))
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.testTag("books_list"),
+            ) {
+                continueBook?.let { continueItem ->
+                    item(key = "continue_${continueItem.book.book.id}") {
+                        ContinueBookItem(
+                            continueItem = continueItem,
+                            playbackStatus = playbackStatus,
+                            onBookClick = onBookClick,
+                            onTogglePlayPause = onTogglePlayPause,
+                            onPrepareAndPlay = onPrepareAndPlay,
+                            onUnavailableBookClicked = onUnavailableBookClicked,
+                            onDeleteRequested = onDeleteRequested,
+                        )
+                    }
                 }
-                DropdownMenu(
-                    expanded = showFabMenu,
-                    onDismissRequest = { showFabMenu = false },
-                    modifier = Modifier.testTag("fab_menu"),
+                items(books, key = { it.book.id }) { bookWithProgress ->
+                    LibraryBookItem(
+                        bookWithProgress = bookWithProgress,
+                        playbackStatus = playbackStatus,
+                        onBookClick = onBookClick,
+                        onTogglePlayPause = onTogglePlayPause,
+                        onPrepareAndPlay = onPrepareAndPlay,
+                        onUnavailableBookClicked = onUnavailableBookClicked,
+                        onDeleteRequested = onDeleteRequested,
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = isScanning,
+            modifier = Modifier.align(Alignment.Center),
+        ) {
+            CircularProgressIndicator()
+        }
+    }
+}
+
+@Composable
+private fun ContinueBookItem(
+    continueItem: ContinueBookUiState,
+    playbackStatus: PlaybackStatus,
+    onBookClick: (Long) -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onPrepareAndPlay: (Long) -> Unit,
+    onUnavailableBookClicked: () -> Unit,
+    onDeleteRequested: (BookWithProgress) -> Unit,
+) {
+    val bookWithProgress = continueItem.book
+    val bookId = bookWithProgress.book.id
+    val cardState = rememberCardState(
+        bookWithProgress = bookWithProgress,
+        playbackStatus = playbackStatus,
+        onTogglePlayPause = onTogglePlayPause,
+        onPrepareAndPlay = onPrepareAndPlay,
+    )
+    ContinueListeningSection(
+        title = stringResource(continueSectionTitleRes(continueItem.status)),
+        stateDescription = stringResource(continueSectionStatusRes(continueItem.status)),
+        card = {
+            BookCard(
+                uiState = cardState,
+                onClick = { handleBookClick(bookWithProgress, onBookClick, onUnavailableBookClicked) },
+                onLongClick = { onDeleteRequested(bookWithProgress) },
+                modifier = Modifier,
+            )
+        },
+        modifier = Modifier.testTag("continue_section"),
+        cardModifier = Modifier.testTag("continue_book_card_$bookId"),
+    )
+}
+
+@Composable
+private fun LibraryBookItem(
+    bookWithProgress: BookWithProgress,
+    playbackStatus: PlaybackStatus,
+    onBookClick: (Long) -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onPrepareAndPlay: (Long) -> Unit,
+    onUnavailableBookClicked: () -> Unit,
+    onDeleteRequested: (BookWithProgress) -> Unit,
+) {
+    BookCard(
+        uiState = rememberCardState(
+            bookWithProgress = bookWithProgress,
+            playbackStatus = playbackStatus,
+            onTogglePlayPause = onTogglePlayPause,
+            onPrepareAndPlay = onPrepareAndPlay,
+            isHighlighted = false,
+        ),
+        onClick = { handleBookClick(bookWithProgress, onBookClick, onUnavailableBookClicked) },
+        onLongClick = { onDeleteRequested(bookWithProgress) },
+        modifier = Modifier,
+    )
+}
+
+private fun continueSectionTitleRes(status: ContinueBookStatus): Int =
+    if (status == ContinueBookStatus.LAST_PLAYED) {
+        R.string.section_last_played
+    } else {
+        R.string.section_continue_listening
+    }
+
+private fun continueSectionStatusRes(status: ContinueBookStatus): Int =
+    when (status) {
+        ContinueBookStatus.CONTINUE -> R.string.continue_status_continue
+        ContinueBookStatus.PLAYING -> R.string.cd_playing
+        ContinueBookStatus.PAUSED -> R.string.cd_paused
+        ContinueBookStatus.LAST_PLAYED -> R.string.continue_status_last_played
+    }
+
+private fun handleBookClick(
+    bookWithProgress: BookWithProgress,
+    onBookClick: (Long) -> Unit,
+    onUnavailableBookClicked: () -> Unit,
+) {
+    if (bookWithProgress.isAvailable) {
+        onBookClick(bookWithProgress.book.id)
+    } else {
+        onUnavailableBookClicked()
+    }
+}
+
+private fun rememberCardState(
+    bookWithProgress: BookWithProgress,
+    playbackStatus: PlaybackStatus,
+    onTogglePlayPause: () -> Unit,
+    onPrepareAndPlay: (Long) -> Unit,
+    isHighlighted: Boolean = true,
+): LibraryBookCardUiState {
+    val bookId = bookWithProgress.book.id
+    val isActive = playbackStatus.activeBookId == bookId
+    return LibraryBookCardUiState(
+        bookWithProgress = bookWithProgress,
+        isActive = isActive,
+        isPlaying = isActive && playbackStatus.isPlaying,
+        isHighlighted = isHighlighted,
+        onCoverClick = when {
+            !bookWithProgress.isAvailable -> null
+            isActive && playbackStatus.isMediaLoaded -> onTogglePlayPause
+            isActive -> ({ onPrepareAndPlay(bookId) })
+            else -> null
+        },
+    )
+}
+
+@Composable
+private fun DeleteBookDialog(
+    book: BookWithProgress?,
+    onDismiss: () -> Unit,
+    onConfirm: (BookWithProgress, Boolean) -> Unit,
+) {
+    book ?: return
+    var deleteFiles by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_delete_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.dialog_delete_message, book.book.title))
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { deleteFiles = !deleteFiles }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.menu_add_folder)) },
-                        leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
-                        onClick = {
-                            showFabMenu = false
-                            folderPicker.launch(null)
-                        },
-                        modifier = Modifier.testTag("menu_add_folder"),
+                    Checkbox(
+                        checked = deleteFiles,
+                        onCheckedChange = { deleteFiles = it },
                     )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.menu_add_file)) },
-                        leadingIcon = { Icon(Icons.Default.AudioFile, contentDescription = null) },
-                        onClick = {
-                            showFabMenu = false
-                            filePicker.launch(arrayOf("audio/*"))
-                        },
-                        modifier = Modifier.testTag("menu_add_file"),
-                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.dialog_delete_also_files),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (deleteFiles) {
+                            Text(
+                                text = stringResource(R.string.dialog_delete_irreversible),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                 }
             }
         },
-    ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.resyncAll() },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            if (continueBook == null && books.isEmpty() && !isScanning) {
-                EmptyLibrary(modifier = Modifier.align(Alignment.Center))
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.testTag("books_list"),
-                ) {
-                    continueBook?.let { continueItem ->
-                        val bookWithProgress = continueItem.book
-                        val bookId = bookWithProgress.book.id
-                        val isActive = playbackStatus.activeBookId == bookId
-                        val cardState = LibraryBookCardUiState(
-                            bookWithProgress = bookWithProgress,
-                            isActive = isActive,
-                            isPlaying = isActive && playbackStatus.isPlaying,
-                            isHighlighted = true,
-                            onCoverClick = when {
-                                !bookWithProgress.isAvailable -> null
-                                isActive && playbackStatus.isMediaLoaded -> viewModel::togglePlayPause
-                                isActive -> { { viewModel.prepareAndPlay(bookId) } }
-                                else -> null
-                            },
-                        )
-                        item(key = "continue_$bookId") {
-                            ContinueListeningSection(
-                                title = stringResource(
-                                    if (continueItem.status == ContinueBookStatus.LastPlayed) {
-                                        R.string.section_last_played
-                                    } else {
-                                        R.string.section_continue_listening
-                                    },
-                                ),
-                                stateDescription = stringResource(
-                                    when (continueItem.status) {
-                                        ContinueBookStatus.Continue -> R.string.continue_status_continue
-                                        ContinueBookStatus.Playing -> R.string.cd_playing
-                                        ContinueBookStatus.Paused -> R.string.cd_paused
-                                        ContinueBookStatus.LastPlayed -> R.string.continue_status_last_played
-                                    },
-                                ),
-                                card = {
-                                    BookCard(
-                                        uiState = cardState,
-                                        onClick = {
-                                            if (bookWithProgress.isAvailable) onBookClick(bookId)
-                                            else viewModel.onUnavailableBookClicked()
-                                        },
-                                        onLongClick = { bookToDelete.value = bookWithProgress },
-                                        modifier = Modifier.animateItem(),
-                                    )
-                                },
-                                modifier = Modifier
-                                    .testTag("continue_section")
-                                    .animateItem(),
-                                cardModifier = Modifier.testTag("continue_book_card_$bookId"),
-                            )
-                        }
-                    }
-                    items(books, key = { it.book.id }) { bookWithProgress ->
-                        val isActive = playbackStatus.activeBookId == bookWithProgress.book.id
-                        val bookId = bookWithProgress.book.id
-                        val cardState = LibraryBookCardUiState(
-                            bookWithProgress = bookWithProgress,
-                            isActive = isActive,
-                            isPlaying = isActive && playbackStatus.isPlaying,
-                            isHighlighted = false,
-                            onCoverClick = when {
-                                !bookWithProgress.isAvailable -> null
-                                isActive && playbackStatus.isMediaLoaded -> viewModel::togglePlayPause
-                                isActive -> { { viewModel.prepareAndPlay(bookId) } }
-                                else -> null
-                            },
-                        )
-                        BookCard(
-                            uiState = cardState,
-                            onClick = {
-                                if (bookWithProgress.isAvailable) onBookClick(bookId)
-                                else viewModel.onUnavailableBookClicked()
-                            },
-                            onLongClick = { bookToDelete.value = bookWithProgress },
-                            modifier = Modifier.animateItem(),
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isScanning,
-                modifier = Modifier.align(Alignment.Center),
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-    }
-
-    bookToDelete.value?.let { book ->
-        var deleteFiles by remember { mutableStateOf(false) }
-        AlertDialog(
-            onDismissRequest = { bookToDelete.value = null },
-            title = { Text(stringResource(R.string.dialog_delete_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.dialog_delete_message, book.book.title))
-                    Spacer(Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { deleteFiles = !deleteFiles }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(
-                            checked = deleteFiles,
-                            onCheckedChange = { deleteFiles = it },
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.dialog_delete_also_files),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            if (deleteFiles) {
-                                Text(
-                                    text = stringResource(R.string.dialog_delete_irreversible),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteBook(book, deleteFiles)
-                        bookToDelete.value = null
+        confirmButton = {
+            TextButton(onClick = { onConfirm(book, deleteFiles) }) {
+                Text(
+                    text = stringResource(R.string.dialog_delete_confirm),
+                    color = if (deleteFiles) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
                     },
-                ) {
-                    Text(
-                        text = stringResource(R.string.dialog_delete_confirm),
-                        color = if (deleteFiles) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { bookToDelete.value = null }) {
-                    Text(stringResource(R.string.dialog_delete_cancel))
-                }
-            },
-            icon = { Icon(Icons.Default.Delete, contentDescription = null) },
-        )
-    }
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dialog_delete_cancel))
+            }
+        },
+        icon = { Icon(Icons.Default.Delete, contentDescription = null) },
+    )
 }
 
 @Composable
@@ -403,15 +573,18 @@ private fun BookCard(
                     Modifier
                 },
             )
-            .alpha(if (uiState.bookWithProgress.isAvailable) 1f else 0.4f)
+            .alpha(if (uiState.bookWithProgress.isAvailable) 1f else UNAVAILABLE_BOOK_ALPHA)
             .testTag("book_card_${book.id}")
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (uiState.isHighlighted) MaterialTheme.colorScheme.surfaceContainerHigh
-            else MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = if (uiState.isHighlighted) {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
         ),
     ) {
         Row(modifier = Modifier.padding(12.dp)) {
@@ -562,16 +735,23 @@ private fun BookThumbnail(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f))
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = ACTIVE_COVER_OVERLAY_ALPHA))
                     .then(
-                        if (onCoverClick != null) Modifier.clickable(onClick = onCoverClick)
-                        else Modifier,
+                        if (onCoverClick != null) {
+                            Modifier.clickable(onClick = onCoverClick)
+                        } else {
+                            Modifier
+                        },
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) stringResource(R.string.cd_playing) else stringResource(R.string.cd_paused),
+                    contentDescription = if (isPlaying) {
+                        stringResource(R.string.cd_playing)
+                    } else {
+                        stringResource(R.string.cd_paused)
+                    },
                     tint = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.size(32.dp),
                 )

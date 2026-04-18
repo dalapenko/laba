@@ -1,12 +1,13 @@
 package com.dalapenko.laba.feature.player
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dalapenko.laba.core.data.BookRepository
+import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.database.entity.BookEntity
 import com.dalapenko.laba.core.database.entity.ProgressEntity
 import com.dalapenko.laba.core.database.entity.TrackEntity
-import com.dalapenko.laba.core.data.BookRepository
-import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaybackError
 import com.dalapenko.laba.core.media.PlaybackPreparer
@@ -18,7 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.util.Log
+
+private const val COMPLETION_THRESHOLD_MS = 1000L
+private const val PLAYBACK_SPEED_MIN = 0.5f
+private const val PLAYBACK_SPEED_MAX = 2.0f
 
 sealed interface PlayerEvent {
     data object ClosePlayer : PlayerEvent
@@ -30,7 +34,7 @@ data class PlayerUiState(
     val tracks: List<TrackEntity> = emptyList(),
     val playerState: PlayerState = PlayerState(),
     val isLoading: Boolean = true,
-    val isInitializing: Boolean = true,  // True until correct initial state is set
+    val isInitializing: Boolean = true, // True until correct initial state is set
 )
 
 class PlayerViewModel(
@@ -85,8 +89,11 @@ class PlayerViewModel(
                 // Guard 1: Only accept states when this book is the active book
                 if (playbackController.currentBookId.value != bookId) {
                     if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "Ignoring state update - different book is active " +
-                            "(current=${playbackController.currentBookId.value}, this=$bookId)")
+                        Log.d(
+                            TAG,
+                            "Ignoring state update - different book is active " +
+                                "(current=${playbackController.currentBookId.value}, this=$bookId)",
+                        )
                     }
                     return@collect
                 }
@@ -96,8 +103,11 @@ class PlayerViewModel(
                 val tracks = _uiState.value.tracks
                 if (tracks.isNotEmpty() && state.currentMediaItemIndex >= tracks.size) {
                     if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "Ignoring state update - track index ${state.currentMediaItemIndex} " +
-                            "exceeds our track count ${tracks.size}")
+                        Log.d(
+                            TAG,
+                            "Ignoring state update - track index ${state.currentMediaItemIndex} " +
+                                "exceeds our track count ${tracks.size}",
+                        )
                     }
                     return@collect
                 }
@@ -117,7 +127,8 @@ class PlayerViewModel(
         val tracks = _uiState.value.tracks
         if (tracks.isEmpty()) return
         val isLastTrack = state.currentMediaItemIndex >= tracks.lastIndex
-        val nearEnd = state.durationMs > 0 && state.currentPositionMs >= state.durationMs - 1000
+        val nearEnd = state.durationMs > 0 &&
+            state.currentPositionMs >= state.durationMs - COMPLETION_THRESHOLD_MS
         if (isLastTrack && nearEnd && !state.isPlaying) {
             viewModelScope.launch { saveProgressInternal(forceCompleted = true) }
         }
@@ -148,7 +159,7 @@ class PlayerViewModel(
     }
 
     fun setSpeed(speed: Float) {
-        playbackController.setSpeed(speed.coerceIn(0.5f, 2.0f))
+        playbackController.setSpeed(speed.coerceIn(PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX))
     }
 
     private fun saveProgressInternal(forceCompleted: Boolean = false) {
@@ -160,10 +171,13 @@ class PlayerViewModel(
 
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             val source = if (snapshot != null) "snapshot" else "local UI state"
-            Log.d(TAG, "Saving progress for book $bookId from $source: " +
-                "position=${state.currentPositionMs}ms, " +
-                "track=${state.currentMediaItemIndex}, " +
-                "forceCompleted=$forceCompleted")
+            Log.d(
+                TAG,
+                "Saving progress for book $bookId from $source: " +
+                    "position=${state.currentPositionMs}ms, " +
+                    "track=${state.currentMediaItemIndex}, " +
+                    "forceCompleted=$forceCompleted",
+            )
         }
 
         if (tracks.isEmpty()) return
@@ -177,7 +191,7 @@ class PlayerViewModel(
         val isCompleted = forceCompleted || (
             currentIndex == tracks.lastIndex &&
                 state.durationMs > 0 &&
-                state.currentPositionMs >= state.durationMs - 1000
+                state.currentPositionMs >= state.durationMs - COMPLETION_THRESHOLD_MS
             )
 
         viewModelScope.launch {
@@ -190,12 +204,15 @@ class PlayerViewModel(
                     lastUpdated = System.currentTimeMillis(),
                     isCompleted = isCompleted,
                     playbackSpeed = state.playbackSpeed,
-                )
+                ),
             )
 
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Progress saved to database for book $bookId: " +
-                    "position=${state.currentPositionMs}ms, trackId=${currentTrack.id}")
+                Log.d(
+                    TAG,
+                    "Progress saved to database for book $bookId: " +
+                        "position=${state.currentPositionMs}ms, trackId=${currentTrack.id}",
+                )
             }
         }
     }
@@ -220,7 +237,6 @@ class PlayerViewModel(
             }
         }
     }
-
 }
 
 private const val TAG = "PlayerViewModel"

@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["bookId"],
             onDelete = ForeignKey.CASCADE,
-        )
+        ),
     ],
 )
 data class ProgressEntity(

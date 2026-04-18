@@ -1,5 +1,6 @@
 package com.dalapenko.laba.feature.library
 
+import androidx.room.withTransaction
 import app.cash.turbine.test
 import com.dalapenko.laba.core.data.BookRepository
 import com.dalapenko.laba.core.database.AppDatabase
@@ -17,7 +18,6 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
-import androidx.room.withTransaction
 import io.mockk.mockkStatic
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -192,7 +192,7 @@ class BookRepositoryTest {
         // completedTracksMs=30000 + lastPositionMs=20000 = 50000 out of 100000 = 0.5
         booksFlow.value = listOf(testBook(id = 1L, totalDurationMs = 100_000L))
         allProgressFlow.value = listOf(
-            testProgress(bookId = 1L, completedTracksMs = 30_000L, lastPositionMs = 20_000L)
+            testProgress(bookId = 1L, completedTracksMs = 30_000L, lastPositionMs = 20_000L),
         )
 
         repository.observeAllBooksWithProgress().test {
@@ -205,7 +205,7 @@ class BookRepositoryTest {
     fun givenProgressExceedingDuration_whenObservingBooksWithProgress_thenProgressFractionClampedToOne() = runTest {
         booksFlow.value = listOf(testBook(id = 1L, totalDurationMs = 100_000L))
         allProgressFlow.value = listOf(
-            testProgress(bookId = 1L, completedTracksMs = 80_000L, lastPositionMs = 30_000L)
+            testProgress(bookId = 1L, completedTracksMs = 80_000L, lastPositionMs = 30_000L),
         )
 
         repository.observeAllBooksWithProgress().test {

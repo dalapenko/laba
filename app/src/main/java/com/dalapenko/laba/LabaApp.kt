@@ -16,7 +16,7 @@ class LabaApp : Application() {
             androidContext(this@LabaApp)
             modules(appModule, mediaModule, featureModule)
         }
-        
+
         // Initialize PlaybackController once at app startup
         // Establishes persistent connection to MediaSessionService for background playback
         val playbackController: PlaybackController by inject()

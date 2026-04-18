@@ -66,7 +66,22 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.util.Locale
 
+private const val PLAYBACK_SPEED_STEP_COUNT = 20
+private const val PLAYBACK_SPEED_MIN = 0.5f
+private const val PLAYBACK_SPEED_MAX = 2.0f
+private const val PLAYBACK_SPEED_SLIDER_STEPS = 29
+private const val MILLIS_PER_SECOND = 1000
+private const val SECONDS_PER_HOUR = 3600
+private const val SECONDS_PER_MINUTE = 60
+
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress(
+    "LongMethod",
+    "CyclomaticComplexMethod",
+    "MagicNumber",
+    "MaxLineLength",
+    "MaximumLineLength",
+)
 @Composable
 fun PlayerScreen(
     bookId: Long,
@@ -89,7 +104,7 @@ fun PlayerScreen(
                         ?: String.format(fallbackTrackNameTemplate, event.trackIndex + 1)
                     snackbarHostState.showSnackbar(
                         message = String.format(trackUnavailableTemplate, name),
-                        duration = SnackbarDuration.Short
+                        duration = SnackbarDuration.Short,
                     )
                 }
             }
@@ -109,24 +124,30 @@ fun PlayerScreen(
                         text = uiState.book?.title ?: "",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag("player_book_title")
+                        modifier = Modifier.testTag("player_book_title"),
                     )
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
-                        modifier = Modifier.testTag("back_button")
+                        modifier = Modifier.testTag("back_button"),
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_back),
+                        )
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = { showChapters.value = true },
                         enabled = uiState.tracks.size > 1,
-                        modifier = Modifier.testTag("chapters_button")
+                        modifier = Modifier.testTag("chapters_button"),
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = stringResource(R.string.cd_show_chapters))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ListAlt,
+                            contentDescription = stringResource(R.string.cd_show_chapters),
+                        )
                     }
                 },
             )
@@ -220,7 +241,9 @@ fun PlayerScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs),
+                                text = formatTime(
+                                    if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs,
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                             )
                             Text(
@@ -239,7 +262,7 @@ fun PlayerScreen(
                             IconButton(
                                 enabled = uiState.tracks.size > 1 && currentTrackIndex > 0,
                                 onClick = { viewModel.skipToTrack(currentTrackIndex - 1) },
-                                modifier = Modifier.testTag("previous_chapter_button")
+                                modifier = Modifier.testTag("previous_chapter_button"),
                             ) {
                                 Icon(
                                     Icons.Default.SkipPrevious,
@@ -252,7 +275,7 @@ fun PlayerScreen(
 
                             IconButton(
                                 onClick = { viewModel.seekBack() },
-                                modifier = Modifier.testTag("rewind_button")
+                                modifier = Modifier.testTag("rewind_button"),
                             ) {
                                 Icon(
                                     Icons.Default.Replay10,
@@ -271,7 +294,13 @@ fun PlayerScreen(
                             ) {
                                 Icon(
                                     imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play),
+                                    contentDescription = if (playerState.isPlaying) {
+                                        stringResource(
+                                            R.string.cd_pause,
+                                        )
+                                    } else {
+                                        stringResource(R.string.cd_play)
+                                    },
                                     modifier = Modifier.size(32.dp),
                                 )
                             }
@@ -280,7 +309,7 @@ fun PlayerScreen(
 
                             IconButton(
                                 onClick = { viewModel.seekForward() },
-                                modifier = Modifier.testTag("forward_button")
+                                modifier = Modifier.testTag("forward_button"),
                             ) {
                                 Icon(
                                     Icons.Default.Forward10,
@@ -294,7 +323,7 @@ fun PlayerScreen(
                             IconButton(
                                 enabled = uiState.tracks.size > 1 && currentTrackIndex < uiState.tracks.lastIndex,
                                 onClick = { viewModel.skipToTrack(currentTrackIndex + 1) },
-                                modifier = Modifier.testTag("next_chapter_button")
+                                modifier = Modifier.testTag("next_chapter_button"),
                             ) {
                                 Icon(
                                     Icons.Default.SkipNext,
@@ -375,7 +404,9 @@ fun PlayerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs),
+                            text = formatTime(
+                                if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs,
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                         )
                         Text(
@@ -394,7 +425,7 @@ fun PlayerScreen(
                         IconButton(
                             enabled = uiState.tracks.size > 1 && currentTrackIndex > 0,
                             onClick = { viewModel.skipToTrack(currentTrackIndex - 1) },
-                            modifier = Modifier.testTag("previous_chapter_button")
+                            modifier = Modifier.testTag("previous_chapter_button"),
                         ) {
                             Icon(
                                 Icons.Default.SkipPrevious,
@@ -407,7 +438,7 @@ fun PlayerScreen(
 
                         IconButton(
                             onClick = { viewModel.seekBack() },
-                            modifier = Modifier.testTag("rewind_button")
+                            modifier = Modifier.testTag("rewind_button"),
                         ) {
                             Icon(
                                 Icons.Default.Replay10,
@@ -426,7 +457,13 @@ fun PlayerScreen(
                         ) {
                             Icon(
                                 imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play),
+                                contentDescription = if (playerState.isPlaying) {
+                                    stringResource(
+                                        R.string.cd_pause,
+                                    )
+                                } else {
+                                    stringResource(R.string.cd_play)
+                                },
                                 modifier = Modifier.size(36.dp),
                             )
                         }
@@ -435,7 +472,7 @@ fun PlayerScreen(
 
                         IconButton(
                             onClick = { viewModel.seekForward() },
-                            modifier = Modifier.testTag("forward_button")
+                            modifier = Modifier.testTag("forward_button"),
                         ) {
                             Icon(
                                 Icons.Default.Forward10,
@@ -449,7 +486,7 @@ fun PlayerScreen(
                         IconButton(
                             enabled = uiState.tracks.size > 1 && currentTrackIndex < uiState.tracks.lastIndex,
                             onClick = { viewModel.skipToTrack(currentTrackIndex + 1) },
-                            modifier = Modifier.testTag("next_chapter_button")
+                            modifier = Modifier.testTag("next_chapter_button"),
                         ) {
                             Icon(
                                 Icons.Default.SkipNext,
@@ -526,17 +563,17 @@ private fun SpeedControl(
         Text(
             text = String.format(Locale.ENGLISH, "%.2f×", currentSpeed),
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.testTag("speed_text")
+            modifier = Modifier.testTag("speed_text"),
         )
         val playbackSpeedDesc = stringResource(R.string.cd_playback_speed)
         Slider(
             value = currentSpeed,
             onValueChange = { raw ->
-                val snapped = (raw * 20).toInt() / 20f
-                onSpeedChanged(snapped.coerceIn(0.5f, 2.0f))
+                val snapped = (raw * PLAYBACK_SPEED_STEP_COUNT).toInt() / PLAYBACK_SPEED_STEP_COUNT.toFloat()
+                onSpeedChanged(snapped.coerceIn(PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX))
             },
-            valueRange = 0.5f..2.0f,
-            steps = 29,
+            valueRange = PLAYBACK_SPEED_MIN..PLAYBACK_SPEED_MAX,
+            steps = PLAYBACK_SPEED_SLIDER_STEPS,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("speed_slider")
@@ -561,10 +598,10 @@ private fun SpeedControl(
 }
 
 private fun formatTime(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
+    val totalSeconds = ms / MILLIS_PER_SECOND
+    val hours = totalSeconds / SECONDS_PER_HOUR
+    val minutes = (totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
+    val seconds = totalSeconds % SECONDS_PER_MINUTE
     return if (hours > 0) {
         String.format(Locale.ENGLISH, "%d:%02d:%02d", hours, minutes, seconds)
     } else {

@@ -6,7 +6,7 @@ import io.github.kakaocup.compose.node.element.KNode
 
 /**
  * Page Object for the Library Screen.
- * 
+ *
  * Provides access to all UI elements on the library screen using the Page Object pattern.
  */
 class LibraryScreen(semanticsProvider: SemanticsNodeInteractionsProvider) :
@@ -14,18 +14,6 @@ class LibraryScreen(semanticsProvider: SemanticsNodeInteractionsProvider) :
         semanticsProvider = semanticsProvider,
         viewBuilderAction = { hasTestTag("library_screen") }
     ) {
-
-    val settingsButton: KNode = child {
-        hasTestTag("settings_button")
-    }
-
-    val fabAdd: KNode = child {
-        hasTestTag("fab_add")
-    }
-
-    val booksList: KNode = child {
-        hasTestTag("books_list")
-    }
 
     val continueSection: KNode = child {
         hasTestTag("continue_section")
@@ -54,14 +42,6 @@ class LibraryScreen(semanticsProvider: SemanticsNodeInteractionsProvider) :
     fun bookTitle(bookId: Long): KNode = child {
         useUnmergedTree = true
         hasTestTag("book_title_$bookId")
-    }
-
-    /**
-     * Returns the progress indicator of a book by book ID.
-     */
-    fun bookProgress(bookId: Long): KNode = child {
-        useUnmergedTree = true
-        hasTestTag("book_progress_$bookId")
     }
 
     /**

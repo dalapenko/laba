@@ -3,6 +3,8 @@ package com.dalapenko.laba.core.media
 import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -24,8 +26,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import androidx.core.net.toUri
-import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 
 data class PlayerState(
@@ -49,6 +49,12 @@ sealed interface PlaybackError {
     data object BookUnavailable : PlaybackError
 }
 
+private const val CONNECTION_MONITOR_INTERVAL_MS = 5_000L
+private const val TRACK_LOAD_DELAY_MS = 100L
+private const val TRACK_END_OFFSET_MS = 1000L
+private const val POSITION_POLL_INTERVAL_MS = 250L
+private const val MAX_CONSECUTIVE_ERRORS_FOR_BOOK = 3
+
 /**
  * Singleton controller managing playback via MediaSessionService.
  *
@@ -58,6 +64,7 @@ sealed interface PlaybackError {
  *
  * Thread safety: All methods must be called from the main thread.
  */
+@Suppress("TooManyFunctions")
 class PlaybackController(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -134,7 +141,7 @@ class PlaybackController(private val context: Context) {
                 }
 
                 // If we've had 3+ consecutive errors on different tracks, entire book is likely gone
-                if (consecutiveErrors >= 3) {
+                if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS_FOR_BOOK) {
                     consecutiveErrors = 0
                     _playbackError.tryEmit(PlaybackError.BookUnavailable)
                     return
@@ -185,7 +192,7 @@ class PlaybackController(private val context: Context) {
     private fun startConnectionMonitoring() {
         scope.launch {
             while (true) {
-                delay(5_000L) // Check every 5 seconds
+                delay(CONNECTION_MONITOR_INTERVAL_MS) // Check every 5 seconds
                 val c = controller
                 if (c == null || !c.isConnected) {
                     Log.w(TAG, "MediaController disconnected, attempting reconnect...")
@@ -193,7 +200,20 @@ class PlaybackController(private val context: Context) {
                     isConnecting = false
                     connect()
                     // Re-send cached metadata to newly connected service
-                    sendBookMetadataToService()
+                    val metadataBundle = cachedBookId?.let { bookId ->
+                        Bundle().apply {
+                            putLong(KEY_BOOK_ID, bookId)
+                            putLongArray(KEY_TRACK_IDS, cachedTrackIds)
+                            putLongArray(KEY_TRACK_DURATIONS, cachedTrackDurations)
+                        }
+                    }
+                    val currentController = controller
+                    if (metadataBundle != null && currentController != null) {
+                        currentController.sendCustomCommand(
+                            SessionCommand(ACTION_SET_BOOK_METADATA, Bundle.EMPTY),
+                            metadataBundle,
+                        )
+                    }
                 }
             }
         }
@@ -244,7 +264,7 @@ class PlaybackController(private val context: Context) {
             durationMs = duration,
             currentMediaItemIndex = trackIndex,
             playbackSpeed = speed,
-            isReady = false
+            isReady = false,
         )
     }
 
@@ -260,7 +280,7 @@ class PlaybackController(private val context: Context) {
                         .setTitle(item.title)
                         .setArtist(item.artist)
                         .apply { item.artworkUri?.let { setArtworkUri(it.toUri()) } }
-                        .build()
+                        .build(),
                 )
                 .build()
         }
@@ -275,10 +295,6 @@ class PlaybackController(private val context: Context) {
         cachedBookId = bookId
         cachedTrackIds = trackIds.toLongArray()
         cachedTrackDurations = trackDurations.toLongArray()
-        sendBookMetadataToService()
-    }
-
-    private fun sendBookMetadataToService() {
         val bId = cachedBookId ?: return
         val c = controller ?: return
         val bundle = Bundle().apply {
@@ -305,10 +321,13 @@ class PlaybackController(private val context: Context) {
         bookStateSnapshots[currentId] = currentState
 
         if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "Captured state for book $currentId: " +
-                "position=${currentState.currentPositionMs}ms, " +
-                "track=${currentState.currentMediaItemIndex}, " +
-                "speed=${currentState.playbackSpeed}x")
+            Log.d(
+                TAG,
+                "Captured state for book $currentId: " +
+                    "position=${currentState.currentPositionMs}ms, " +
+                    "track=${currentState.currentMediaItemIndex}, " +
+                    "speed=${currentState.playbackSpeed}x",
+            )
         }
     }
 
@@ -334,9 +353,12 @@ class PlaybackController(private val context: Context) {
         val snapshot = bookStateSnapshots[bookId]
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             if (snapshot != null) {
-                Log.d(TAG, "Retrieved snapshot for book $bookId: " +
-                    "position=${snapshot.currentPositionMs}ms, " +
-                    "track=${snapshot.currentMediaItemIndex}")
+                Log.d(
+                    TAG,
+                    "Retrieved snapshot for book $bookId: " +
+                        "position=${snapshot.currentPositionMs}ms, " +
+                        "track=${snapshot.currentMediaItemIndex}",
+                )
             } else {
                 Log.d(TAG, "No snapshot found for book $bookId")
             }
@@ -382,11 +404,11 @@ class PlaybackController(private val context: Context) {
             c.seekTo(previousTrackIndex, 0L)
             // Get duration of previous track and seek to near the end
             scope.launch {
-                delay(100) // Wait for media to load
+                delay(TRACK_LOAD_DELAY_MS) // Wait for media to load
                 val duration = c.duration
                 if (duration > 0) {
                     // Seek to 1 second before the end, or the end if track is shorter
-                    val seekPosition = (duration - 1000).coerceAtLeast(0)
+                    val seekPosition = (duration - TRACK_END_OFFSET_MS).coerceAtLeast(0)
                     c.seekTo(previousTrackIndex, seekPosition)
                 }
                 c.pause()
@@ -420,7 +442,7 @@ class PlaybackController(private val context: Context) {
         pollingJob = scope.launch {
             while (controller?.isPlaying == true) {
                 updateState()
-                delay(250)
+                delay(POSITION_POLL_INTERVAL_MS)
             }
         }
     }

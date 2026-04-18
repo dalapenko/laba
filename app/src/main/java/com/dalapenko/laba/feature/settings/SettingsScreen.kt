@@ -13,14 +13,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,6 +53,7 @@ private const val GITHUB_URL = "https://github.com/dalapenko/laba"
 private const val PRIVACY_POLICY_URL = "https://dalapenko.github.io/laba/privacy-policy"
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod")
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -72,6 +73,11 @@ fun SettingsScreen(
     val showLicenseDialog = remember { mutableStateOf(false) }
     val showThemeDialog = remember { mutableStateOf(false) }
     val showLanguageDialog = remember { mutableStateOf(false) }
+    val themeLabel = when (themeMode) {
+        ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
+        ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)
+        ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -96,141 +102,15 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // ── General ─────────────────────────────────────────────
-            SectionHeader(title = stringResource(R.string.settings_section_general))
-
-            val themeLabel = when (themeMode) {
-                ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
-                ThemeMode.LIGHT  -> stringResource(R.string.settings_theme_light)
-                ThemeMode.DARK   -> stringResource(R.string.settings_theme_dark)
-            }
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_appearance)) },
-                supportingContent = { Text(themeLabel) },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Palette,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.clickable { showThemeDialog.value = true },
+            SettingsGeneralSection(
+                themeLabel = themeLabel,
+                languageLabel = languageLabel,
+                onThemeClick = { showThemeDialog.value = true },
+                onLanguageClick = { showLanguageDialog.value = true },
             )
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_language)) },
-                supportingContent = { Text(languageLabel) },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Language,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.clickable { showLanguageDialog.value = true },
-            )
-
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            Spacer(Modifier.height(8.dp))
-
-            // ── About ───────────────────────────────────────────────
-            SectionHeader(title = stringResource(R.string.settings_section_about))
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_version)) },
-                supportingContent = {
-                    val storeLabel = if (BuildConfig.DEBUG) "debug" else BuildConfig.STORE_LABEL
-                    val versionText = stringResource(
-                        R.string.settings_version_value,
-                        BuildConfig.VERSION_NAME,
-                        BuildConfig.VERSION_CODE,
-                    ) + if (storeLabel.isNotEmpty()) " $storeLabel" else ""
-                    Text(versionText)
-                },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-            )
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_author)) },
-                supportingContent = { Text(stringResource(R.string.settings_author_value)) },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-            )
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_github)) },
-                supportingContent = {
-                    Text(
-                        text = GITHUB_URL,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Code,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                trailingContent = {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.OpenInNew,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.clickable { uriHandler.openUri(GITHUB_URL) },
-            )
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_privacy_policy)) },
-                supportingContent = {
-                    Text(
-                        text = PRIVACY_POLICY_URL,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Policy,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                trailingContent = {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.OpenInNew,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.clickable { uriHandler.openUri(PRIVACY_POLICY_URL) },
-            )
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_licenses)) },
-                supportingContent = { Text(stringResource(R.string.settings_licenses_description)) },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Description,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.clickable { showLicenseDialog.value = true },
+            SettingsAboutSection(
+                uriHandler = uriHandler,
+                onLicenseClick = { showLicenseDialog.value = true },
             )
         }
     }
@@ -245,8 +125,11 @@ fun SettingsScreen(
 
     if (showLanguageDialog.value) {
         LanguageDialog(
-            currentTag = if (AppCompatDelegate.getApplicationLocales().isEmpty) null
-                         else AppCompatDelegate.getApplicationLocales().toLanguageTags(),
+            currentTag = if (AppCompatDelegate.getApplicationLocales().isEmpty) {
+                null
+            } else {
+                AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            },
             onSelect = { viewModel.setLanguage(it) },
             onDismiss = { showLanguageDialog.value = false },
         )
@@ -258,6 +141,125 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SettingsGeneralSection(
+    themeLabel: String,
+    languageLabel: String,
+    onThemeClick: () -> Unit,
+    onLanguageClick: () -> Unit,
+) {
+    SectionHeader(title = stringResource(R.string.settings_section_general))
+
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_appearance)) },
+        supportingContent = { Text(themeLabel) },
+        leadingContent = {
+            SettingsItemIcon(Icons.Outlined.Palette)
+        },
+        modifier = Modifier.clickable(onClick = onThemeClick),
+    )
+
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_language)) },
+        supportingContent = { Text(languageLabel) },
+        leadingContent = {
+            SettingsItemIcon(Icons.Outlined.Language)
+        },
+        modifier = Modifier.clickable(onClick = onLanguageClick),
+    )
+
+    Spacer(Modifier.height(8.dp))
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+    Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun SettingsAboutSection(
+    uriHandler: androidx.compose.ui.platform.UriHandler,
+    onLicenseClick: () -> Unit,
+) {
+    SectionHeader(title = stringResource(R.string.settings_section_about))
+
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_version)) },
+        supportingContent = { Text(settingsVersionText()) },
+        leadingContent = { SettingsItemIcon(Icons.Outlined.Info) },
+    )
+
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_author)) },
+        supportingContent = { Text(stringResource(R.string.settings_author_value)) },
+        leadingContent = { SettingsItemIcon(Icons.Outlined.Person) },
+    )
+
+    ExternalLinkItem(
+        title = stringResource(R.string.settings_github),
+        url = GITHUB_URL,
+        icon = { SettingsItemIcon(Icons.Outlined.Code) },
+        uriHandler = uriHandler,
+    )
+
+    ExternalLinkItem(
+        title = stringResource(R.string.settings_privacy_policy),
+        url = PRIVACY_POLICY_URL,
+        icon = { SettingsItemIcon(Icons.Outlined.Policy) },
+        uriHandler = uriHandler,
+    )
+
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_licenses)) },
+        supportingContent = { Text(stringResource(R.string.settings_licenses_description)) },
+        leadingContent = { SettingsItemIcon(Icons.Outlined.Description) },
+        modifier = Modifier.clickable(onClick = onLicenseClick),
+    )
+}
+
+@Composable
+private fun SettingsItemIcon(imageVector: androidx.compose.ui.graphics.vector.ImageVector) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun ExternalLinkItem(
+    title: String,
+    url: String,
+    icon: @Composable () -> Unit,
+    uriHandler: androidx.compose.ui.platform.UriHandler,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = {
+            Text(
+                text = url,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        },
+        leadingContent = icon,
+        trailingContent = {
+            Icon(
+                Icons.AutoMirrored.Outlined.OpenInNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        modifier = Modifier.clickable { uriHandler.openUri(url) },
+    )
+}
+
+@Composable
+private fun settingsVersionText(): String {
+    val storeLabel = if (BuildConfig.DEBUG) "debug" else BuildConfig.STORE_LABEL
+    return stringResource(
+        R.string.settings_version_value,
+        BuildConfig.VERSION_NAME,
+        BuildConfig.VERSION_CODE,
+    ) + if (storeLabel.isNotEmpty()) " $storeLabel" else ""
+}
+
+@Composable
 private fun ThemeDialog(
     current: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
@@ -265,8 +267,8 @@ private fun ThemeDialog(
 ) {
     val options = listOf(
         ThemeMode.SYSTEM to stringResource(R.string.settings_theme_system),
-        ThemeMode.LIGHT  to stringResource(R.string.settings_theme_light),
-        ThemeMode.DARK   to stringResource(R.string.settings_theme_dark),
+        ThemeMode.LIGHT to stringResource(R.string.settings_theme_light),
+        ThemeMode.DARK to stringResource(R.string.settings_theme_dark),
     )
     AlertDialog(
         onDismissRequest = onDismiss,

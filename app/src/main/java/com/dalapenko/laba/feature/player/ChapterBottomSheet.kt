@@ -25,6 +25,10 @@ import com.dalapenko.laba.R
 import com.dalapenko.laba.core.database.entity.TrackEntity
 import java.util.Locale
 
+private const val CURRENT_TRACK_HIGHLIGHT_ALPHA = 0.3f
+private const val MILLIS_PER_SECOND = 1000
+private const val SECONDS_PER_MINUTE = 60
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChapterBottomSheet(
@@ -38,7 +42,7 @@ fun ChapterBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.testTag("chapter_bottom_sheet")
+        modifier = Modifier.testTag("chapter_bottom_sheet"),
     ) {
         Text(
             text = stringResource(R.string.chapters_title),
@@ -51,7 +55,7 @@ fun ChapterBottomSheet(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("chapters_list")
+                .testTag("chapters_list"),
         ) {
             itemsIndexed(tracks) { index, track ->
                 val isCurrent = index == currentTrackIndex
@@ -73,10 +77,14 @@ fun ChapterBottomSheet(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                    } else null,
+                    } else {
+                        null
+                    },
                     colors = if (isCurrent) {
                         ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                                alpha = CURRENT_TRACK_HIGHLIGHT_ALPHA,
+                            ),
                         )
                     } else {
                         ListItemDefaults.colors()
@@ -91,8 +99,8 @@ fun ChapterBottomSheet(
 }
 
 private fun formatDuration(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
+    val totalSeconds = ms / MILLIS_PER_SECOND
+    val minutes = totalSeconds / SECONDS_PER_MINUTE
+    val seconds = totalSeconds % SECONDS_PER_MINUTE
     return String.format(Locale.ENGLISH, "%d:%02d", minutes, seconds)
 }

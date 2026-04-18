@@ -39,13 +39,16 @@ class BookRepository(
         }
     }
 
-    private fun computeProgressFraction(book: BookEntity, progress: ProgressEntity?): Float {
-        if (progress == null) return 0f
-        if (progress.isCompleted) return 1f
-        if (book.totalDurationMs <= 0) return 0f
-        val absolute = progress.completedTracksMs + progress.lastPositionMs
-        return (absolute.toFloat() / book.totalDurationMs).coerceIn(0f, 1f)
-    }
+    private fun computeProgressFraction(book: BookEntity, progress: ProgressEntity?): Float =
+        when {
+            progress == null -> 0f
+            progress.isCompleted -> 1f
+            book.totalDurationMs <= 0 -> 0f
+            else -> {
+                val absolute = progress.completedTracksMs + progress.lastPositionMs
+                (absolute.toFloat() / book.totalDurationMs).coerceIn(0f, 1f)
+            }
+        }
 
     suspend fun getBookWithTracks(bookId: Long): Pair<BookEntity, List<TrackEntity>>? {
         val book = bookDao.getById(bookId) ?: return null

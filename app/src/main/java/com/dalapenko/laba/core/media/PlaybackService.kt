@@ -2,6 +2,7 @@ package com.dalapenko.laba.core.media
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.database.sqlite.SQLiteException
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.OptIn
@@ -48,9 +49,20 @@ class PlaybackService : MediaSessionService() {
         const val KEY_TRACK_IDS = "trackIds"
         const val KEY_TRACK_DURATIONS = "trackDurations"
         const val SEEK_INCREMENT_MS = 10_000L
+        private const val COMPLETION_THRESHOLD_MS = 1_000L
         private const val PERIODIC_SAVE_INTERVAL_MS = 3_000L // Save every 3 seconds
         private const val TAG = "PlaybackService"
     }
+
+    private data class ProgressSaveSnapshot(
+        val bookId: Long,
+        val currentTrackId: Long,
+        val currentIndex: Int,
+        val currentPosition: Long,
+        val completedTracksMs: Long,
+        val playbackSpeed: Float,
+        val isCompleted: Boolean,
+    )
 
     private val repository: ProgressRepository by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -69,8 +81,8 @@ class PlaybackService : MediaSessionService() {
             .setAudioAttributes(AudioAttributes.DEFAULT, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
-            .setSeekBackIncrementMs(10_000L)
-            .setSeekForwardIncrementMs(10_000L)
+            .setSeekBackIncrementMs(SEEK_INCREMENT_MS)
+            .setSeekForwardIncrementMs(SEEK_INCREMENT_MS)
             .build()
 
         // Add listener for progress tracking
@@ -88,7 +100,8 @@ class PlaybackService : MediaSessionService() {
             override fun onEvents(player: Player, events: Player.Events) {
                 // Save on significant events to minimize data loss
                 if (events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
-                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)
+                ) {
                     saveProgressImmediately()
                 }
             }
@@ -171,48 +184,19 @@ class PlaybackService : MediaSessionService() {
      * Returns immediately if no book is active or player is not available.
      */
     private suspend fun saveProgressSync() {
-        val bookId = currentBookId
         val player = mediaSession?.player
-
-        if (bookId == null || player == null) {
-            return
-        }
-
-        // CRITICAL: Access player properties on main thread
-        val currentIndex = player.currentMediaItemIndex
-        if (currentIndex < 0 || currentIndex >= trackIds.size) {
-            if (trackIds.isEmpty()) {
-                // Metadata not yet set, skip save
-                return
-            }
-            Log.w(TAG, "Invalid track index: $currentIndex (total: ${trackIds.size})")
-            return
-        }
-
-        val currentTrackId = trackIds[currentIndex]
-        val currentPosition = player.currentPosition.coerceAtLeast(0)
-        val duration = player.duration.coerceAtLeast(0)
-        val playbackSpeed = player.playbackParameters.speed
-        val isPlaying = player.isPlaying
-
-        // Calculate completedTracksMs: sum of all tracks before current
-        val completedTracksMs = trackDurations.take(currentIndex).sum()
-
-        // Check if completed (last track, near end, not playing)
-        val isLastTrack = currentIndex >= trackIds.lastIndex
-        val nearEnd = duration > 0 && currentPosition >= duration - 1000
-        val isCompleted = isLastTrack && nearEnd && !isPlaying
+        val snapshot = player?.let { currentProgressSnapshot(it) } ?: return
 
         // Now switch to IO dispatcher for database write
         try {
             val progress = ProgressEntity(
-                bookId = bookId,
-                lastTrackId = currentTrackId,
-                lastPositionMs = currentPosition,
-                completedTracksMs = completedTracksMs,
+                bookId = snapshot.bookId,
+                lastTrackId = snapshot.currentTrackId,
+                lastPositionMs = snapshot.currentPosition,
+                completedTracksMs = snapshot.completedTracksMs,
                 lastUpdated = System.currentTimeMillis(),
-                isCompleted = isCompleted,
-                playbackSpeed = playbackSpeed,
+                isCompleted = snapshot.isCompleted,
+                playbackSpeed = snapshot.playbackSpeed,
             )
 
             kotlinx.coroutines.withContext(Dispatchers.IO) {
@@ -220,11 +204,16 @@ class PlaybackService : MediaSessionService() {
             }
 
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Progress saved: bookId=$bookId, position=${currentPosition}ms, " +
-                    "track=$currentIndex/${trackIds.size}, trackId=$currentTrackId, " +
-                    "completed=$isCompleted")
+                Log.d(
+                    TAG,
+                    "Progress saved: bookId=${snapshot.bookId}, position=${snapshot.currentPosition}ms, " +
+                        "track=${snapshot.currentIndex}/${trackIds.size}, trackId=${snapshot.currentTrackId}, " +
+                        "completed=${snapshot.isCompleted}",
+                )
             }
-        } catch (e: Exception) {
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Failed to save progress", e)
+        } catch (e: SQLiteException) {
             Log.e(TAG, "Failed to save progress", e)
         }
     }
@@ -234,33 +223,16 @@ class PlaybackService : MediaSessionService() {
      * This survives process death via Android's persistent job queue.
      */
     private fun scheduleProgressSaveViaWorkManager(immediate: Boolean = false) {
-        val bookId = currentBookId
         val player = mediaSession?.player
-
-        if (bookId == null || player == null) {
-            return
-        }
-
-        val currentIndex = player.currentMediaItemIndex
-        if (currentIndex < 0 || currentIndex >= trackIds.size) {
-            if (trackIds.isEmpty()) {
-                // Metadata not yet set, skip
-                return
-            }
-            return
-        }
-
-        val currentTrackId = trackIds[currentIndex]
-        val currentPosition = player.currentPosition.coerceAtLeast(0)
-        val completedTracksMs = trackDurations.take(currentIndex).sum()
+        val snapshot = player?.let { currentProgressSnapshot(it) } ?: return
 
         val inputData = Data.Builder()
-            .putLong(ProgressSaveWorker.KEY_BOOK_ID, bookId)
-            .putLong(ProgressSaveWorker.KEY_LAST_TRACK_ID, currentTrackId)
-            .putLong(ProgressSaveWorker.KEY_LAST_POSITION_MS, currentPosition)
-            .putLong(ProgressSaveWorker.KEY_COMPLETED_TRACKS_MS, completedTracksMs)
-            .putFloat(ProgressSaveWorker.KEY_PLAYBACK_SPEED, player.playbackParameters.speed)
-            .putBoolean(ProgressSaveWorker.KEY_IS_COMPLETED, false)
+            .putLong(ProgressSaveWorker.KEY_BOOK_ID, snapshot.bookId)
+            .putLong(ProgressSaveWorker.KEY_LAST_TRACK_ID, snapshot.currentTrackId)
+            .putLong(ProgressSaveWorker.KEY_LAST_POSITION_MS, snapshot.currentPosition)
+            .putLong(ProgressSaveWorker.KEY_COMPLETED_TRACKS_MS, snapshot.completedTracksMs)
+            .putFloat(ProgressSaveWorker.KEY_PLAYBACK_SPEED, snapshot.playbackSpeed)
+            .putBoolean(ProgressSaveWorker.KEY_IS_COMPLETED, snapshot.isCompleted)
             .build()
 
         val constraints = Constraints.Builder()
@@ -279,13 +251,39 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         WorkManager.getInstance(this).enqueueUniqueWork(
-            "progress_save_$bookId",
+            "progress_save_${snapshot.bookId}",
             ExistingWorkPolicy.REPLACE,
-            saveRequest
+            saveRequest,
         )
 
         if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "Scheduled WorkManager save for book $bookId (immediate=$immediate)")
+            Log.d(TAG, "Scheduled WorkManager save for book ${snapshot.bookId} (immediate=$immediate)")
+        }
+    }
+
+    private fun currentProgressSnapshot(player: Player): ProgressSaveSnapshot? {
+        val bookId = currentBookId
+        val currentIndex = player.currentMediaItemIndex
+        val isValidIndex = currentIndex in trackIds.indices
+        if (!isValidIndex && trackIds.isNotEmpty()) {
+            Log.w(TAG, "Invalid track index: $currentIndex (total: ${trackIds.size})")
+        }
+        return if (bookId != null && isValidIndex) {
+            val currentPosition = player.currentPosition.coerceAtLeast(0)
+            val duration = player.duration.coerceAtLeast(0)
+            val isLastTrack = currentIndex >= trackIds.lastIndex
+            val nearEnd = duration > 0 && currentPosition >= duration - COMPLETION_THRESHOLD_MS
+            ProgressSaveSnapshot(
+                bookId = bookId,
+                currentTrackId = trackIds[currentIndex],
+                currentIndex = currentIndex,
+                currentPosition = currentPosition,
+                completedTracksMs = trackDurations.take(currentIndex).sum(),
+                playbackSpeed = player.playbackParameters.speed,
+                isCompleted = isLastTrack && nearEnd && !player.isPlaying,
+            )
+        } else {
+            null
         }
     }
 
@@ -363,7 +361,7 @@ class PlaybackService : MediaSessionService() {
             when (customCommand.customAction) {
                 ACTION_SEEK_BACK -> {
                     session.player.seekTo(
-                        (session.player.currentPosition - SEEK_INCREMENT_MS).coerceAtLeast(0L)
+                        (session.player.currentPosition - SEEK_INCREMENT_MS).coerceAtLeast(0L),
                     )
                 }
                 ACTION_SEEK_FORWARD -> {
@@ -373,7 +371,7 @@ class PlaybackService : MediaSessionService() {
                             (session.player.currentPosition + SEEK_INCREMENT_MS).coerceAtMost(dur)
                         } else {
                             session.player.currentPosition + SEEK_INCREMENT_MS
-                        }
+                        },
                     )
                 }
                 ACTION_SET_BOOK_METADATA -> {

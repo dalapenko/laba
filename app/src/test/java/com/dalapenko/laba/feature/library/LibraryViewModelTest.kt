@@ -122,7 +122,7 @@ class LibraryViewModelTest {
         val book = testBook(id = 1L, isAvailable = true)
         coEvery { mockRepository.getBookById(1L) } returns book
         coEvery { mockScanner.isBookAvailable(any()) } returns true
-        currentBookIdFlow.value = 1L  // same book is active
+        currentBookIdFlow.value = 1L // same book is active
         justRun { mockController.play() }
         justRun { mockController.pause() }
         val vm = createViewModel()
@@ -313,7 +313,7 @@ class LibraryViewModelTest {
     fun givenBookNotPlaying_whenDeleteBook_thenStopNotCalled() = runTest {
         val book = testBook(id = 1L)
         val bookWithProgress = BookWithProgress(book, null, 0f)
-        currentBookIdFlow.value = 99L  // different book is active
+        currentBookIdFlow.value = 99L // different book is active
         coJustRun { mockRepository.deleteBook(any()) }
         justRun { mockScanner.deleteCoverFile(any()) }
         val vm = createViewModel()
@@ -399,7 +399,7 @@ class LibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(2L, vm.continueBook.value?.book?.book?.id)
-        assertEquals(ContinueBookStatus.Continue, vm.continueBook.value?.status)
+        assertEquals(ContinueBookStatus.CONTINUE, vm.continueBook.value?.status)
         assertEquals(listOf(1L), vm.libraryBooks.value.map { it.book.id })
     }
 
@@ -416,7 +416,7 @@ class LibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1L, vm.continueBook.value?.book?.book?.id)
-        assertEquals(ContinueBookStatus.Playing, vm.continueBook.value?.status)
+        assertEquals(ContinueBookStatus.PLAYING, vm.continueBook.value?.status)
         assertEquals(listOf(2L), vm.libraryBooks.value.map { it.book.id })
     }
 
@@ -452,7 +452,7 @@ class LibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(4L, vm.continueBook.value?.book?.book?.id)
-        assertEquals(ContinueBookStatus.LastPlayed, vm.continueBook.value?.status)
+        assertEquals(ContinueBookStatus.LAST_PLAYED, vm.continueBook.value?.status)
         assertTrue(vm.libraryBooks.value.isEmpty())
     }
 }

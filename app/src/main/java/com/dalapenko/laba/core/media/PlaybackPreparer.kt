@@ -98,7 +98,7 @@ class PlaybackPreparer(
                     completedTracksMs = 0L,
                     lastTrackId = tracks.first().id,
                     lastUpdated = System.currentTimeMillis(),
-                )
+                ),
             )
         }
     }
