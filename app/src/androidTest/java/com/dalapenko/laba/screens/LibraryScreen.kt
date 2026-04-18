@@ -27,11 +27,23 @@ class LibraryScreen(semanticsProvider: SemanticsNodeInteractionsProvider) :
         hasTestTag("books_list")
     }
 
+    val continueSection: KNode = child {
+        hasTestTag("continue_section")
+    }
+
+    val continueHeader: KNode = child {
+        hasTestTag("continue_header")
+    }
+
     /**
      * Returns a book card by book ID.
      */
     fun bookCard(bookId: Long): KNode = child {
         hasTestTag("book_card_$bookId")
+    }
+
+    fun continueBookCard(bookId: Long): KNode = child {
+        hasTestTag("continue_book_card_$bookId")
     }
 
     /**

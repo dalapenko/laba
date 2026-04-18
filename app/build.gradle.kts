@@ -29,7 +29,7 @@ android {
         minSdk = 27
         targetSdk = 36
         versionCode = 1
-        versionName = "1.1.1"
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "com.dalapenko.laba.LabaTestRunner"
 
@@ -101,6 +101,8 @@ room {
 }
 
 dependencies {
+    detektPlugins(libs.detekt.formatting)
+
     // Core
     implementation(libs.androidx.core.ktx)
 

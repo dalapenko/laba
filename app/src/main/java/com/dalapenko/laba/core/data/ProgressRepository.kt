@@ -2,6 +2,7 @@ package com.dalapenko.laba.core.data
 
 import com.dalapenko.laba.core.database.dao.ProgressDao
 import com.dalapenko.laba.core.database.entity.ProgressEntity
+import kotlinx.coroutines.flow.Flow
 
 class ProgressRepository(private val progressDao: ProgressDao) {
 
@@ -14,4 +15,7 @@ class ProgressRepository(private val progressDao: ProgressDao) {
 
     suspend fun getLastPlayedBookId(): Long? =
         progressDao.getLastPlayed()?.bookId
+
+    fun observeLastPlayedBookId(): Flow<Long?> =
+        progressDao.observeLastPlayedBookId()
 }

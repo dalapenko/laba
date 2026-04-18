@@ -22,12 +22,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class PlaybackStatus(
     val activeBookId: Long?,
     val isPlaying: Boolean,
     val isMediaLoaded: Boolean,
+)
+
+enum class ContinueBookStatus {
+    Continue,
+    Playing,
+    Paused,
+    LastPlayed,
+}
+
+data class ContinueBookUiState(
+    val book: BookWithProgress,
+    val status: ContinueBookStatus,
 )
 
 class LibraryViewModel(
@@ -41,12 +54,13 @@ class LibraryViewModel(
     private val _events = MutableSharedFlow<LibraryEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<LibraryEvent> = _events.asSharedFlow()
 
-    private val _lastPlayedBookId = MutableStateFlow<Long?>(null)
+    private val lastPlayedBookId: StateFlow<Long?> = progressRepository.observeLastPlayedBookId()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val playbackStatus: StateFlow<PlaybackStatus> = combine(
         playbackController.currentBookId,
         playbackController.playerState,
-        _lastPlayedBookId,
+        lastPlayedBookId,
     ) { mediaBookId, state, lastPlayed ->
         val isLoaded = mediaBookId != null
         PlaybackStatus(
@@ -54,13 +68,16 @@ class LibraryViewModel(
             isPlaying = isLoaded && state.isPlaying,
             isMediaLoaded = isLoaded,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(
-        stopTimeoutMillis = 5000),
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(
+            stopTimeoutMillis = 5000,
+        ),
         initialValue = PlaybackStatus(
             activeBookId = null,
             isPlaying = false,
-            isMediaLoaded = false
-        )
+            isMediaLoaded = false,
+        ),
     )
 
     // Tracks for the currently-playing book; used to compute live progress fraction.
@@ -94,6 +111,47 @@ class LibraryViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val continueBook: StateFlow<ContinueBookUiState?> = combine(
+        books,
+        playbackController.currentBookId,
+        playbackController.playerState,
+        lastPlayedBookId,
+    ) { bookItems, activeBookId, playerState, fallbackBookId ->
+        val activeBook = activeBookId?.let { currentId ->
+            bookItems.firstOrNull { it.book.id == currentId }
+        }
+
+        when {
+            activeBook != null && activeBook.progress?.isCompleted != true -> {
+                ContinueBookUiState(
+                    book = activeBook,
+                    status = if (playerState.isPlaying) ContinueBookStatus.Playing else ContinueBookStatus.Paused,
+                )
+            }
+
+            fallbackBookId != null -> {
+                val lastPlayedBook = bookItems.firstOrNull { it.book.id == fallbackBookId }
+                    ?: return@combine null
+                if (lastPlayedBook.progress?.isCompleted == true) return@combine null
+                ContinueBookUiState(
+                    book = lastPlayedBook,
+                    status = if (lastPlayedBook.isAvailable) ContinueBookStatus.Continue
+                    else ContinueBookStatus.LastPlayed,
+                )
+            }
+
+            else -> null
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val libraryBooks: StateFlow<List<BookWithProgress>> = combine(
+        books,
+        continueBook,
+    ) { bookItems, continueItem ->
+        val continueBookId = continueItem?.book?.book?.id ?: return@combine bookItems
+        bookItems.filterNot { it.book.id == continueBookId }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
 
@@ -105,7 +163,6 @@ class LibraryViewModel(
     val scanResult: StateFlow<ScanResult?> = _scanResult.asStateFlow()
 
     init {
-        viewModelScope.launch { _lastPlayedBookId.value = progressRepository.getLastPlayedBookId() }
         // Silently fill in covers for books added before cover extraction existed
         viewModelScope.launch { resyncMissingCovers() }
         viewModelScope.launch { repository.recheckAllAvailability(scanner) }
@@ -281,7 +338,7 @@ class LibraryViewModel(
     }
 
     fun clearScanResult() {
-        _scanResult.value = null
+        _scanResult.update { null }
     }
 }
 
@@ -297,4 +354,3 @@ sealed interface ScanResult {
     data object Duplicate : ScanResult
     data object PermissionError : ScanResult
 }
-

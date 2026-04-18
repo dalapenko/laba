@@ -1,74 +1,148 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>ArgumentListWrapping:LibraryScreen.kt$(R.string.cd_paused)</ID>
+    <ID>ArgumentListWrapping:LibraryScreen.kt$(R.string.cd_playing)</ID>
+    <ID>ArgumentListWrapping:PlaybackController.kt$PlaybackController$(TAG, "Captured state for book $currentId: " + "position=${currentState.currentPositionMs}ms, " + "track=${currentState.currentMediaItemIndex}, " + "speed=${currentState.playbackSpeed}x")</ID>
+    <ID>ArgumentListWrapping:PlaybackController.kt$PlaybackController$(TAG, "Retrieved snapshot for book $bookId: " + "position=${snapshot.currentPositionMs}ms, " + "track=${snapshot.currentMediaItemIndex}")</ID>
+    <ID>ArgumentListWrapping:PlaybackService.kt$PlaybackService$(TAG, "Progress saved: bookId=$bookId, position=${currentPosition}ms, " + "track=$currentIndex/${trackIds.size}, trackId=$currentTrackId, " + "completed=$isCompleted")</ID>
+    <ID>ArgumentListWrapping:PlayerScreen.kt$(Icons.AutoMirrored.Filled.ListAlt, contentDescription = stringResource(R.string.cd_show_chapters))</ID>
+    <ID>ArgumentListWrapping:PlayerScreen.kt$(R.string.cd_pause)</ID>
+    <ID>ArgumentListWrapping:PlayerScreen.kt$(R.string.cd_play)</ID>
+    <ID>ArgumentListWrapping:PlayerScreen.kt$(R.string.cd_show_chapters)</ID>
+    <ID>ArgumentListWrapping:PlayerScreen.kt$(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs)</ID>
+    <ID>ArgumentListWrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Ignoring state update - different book is active " + "(current=${playbackController.currentBookId.value}, this=$bookId)")</ID>
+    <ID>ArgumentListWrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Ignoring state update - track index ${state.currentMediaItemIndex} " + "exceeds our track count ${tracks.size}")</ID>
+    <ID>ArgumentListWrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Progress saved to database for book $bookId: " + "position=${state.currentPositionMs}ms, trackId=${currentTrack.id}")</ID>
+    <ID>ArgumentListWrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Saving progress for book $bookId from $source: " + "position=${state.currentPositionMs}ms, " + "track=${state.currentMediaItemIndex}, " + "forceCompleted=$forceCompleted")</ID>
+    <ID>ArgumentListWrapping:ProgressSaveWorker.kt$ProgressSaveWorker$(TAG, "Progress saved via WorkManager for book $bookId: " + "position=${lastPositionMs}ms, trackId=$lastTrackId")</ID>
     <ID>CyclomaticComplexMethod:LibraryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun LibraryScreen( onBookClick: (Long) -&gt; Unit, onSettingsClick: () -&gt; Unit, viewModel: LibraryViewModel = koinViewModel(), )</ID>
     <ID>CyclomaticComplexMethod:PlayerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlayerScreen( bookId: Long, autoPlay: Boolean = true, onBack: () -&gt; Unit, viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) }, )</ID>
-    <ID>FunctionNaming:AppNavHost.kt$@Composable fun AppNavHost(navController: NavHostController)</ID>
-    <ID>FunctionNaming:ChapterBottomSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChapterBottomSheet( tracks: List&lt;TrackEntity&gt;, currentTrackIndex: Int, onTrackSelected: (Int) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:LibraryScreen.kt$@Composable private fun BookThumbnail( coverUri: String?, title: String, isActive: Boolean, isPlaying: Boolean, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
-    <ID>FunctionNaming:LibraryScreen.kt$@Composable private fun EmptyLibrary(modifier: Modifier = Modifier)</ID>
-    <ID>FunctionNaming:LibraryScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun BookCard( bookWithProgress: BookWithProgress, isActive: Boolean, isPlaying: Boolean, isAvailable: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
-    <ID>FunctionNaming:LibraryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun LibraryScreen( onBookClick: (Long) -&gt; Unit, onSettingsClick: () -&gt; Unit, viewModel: LibraryViewModel = koinViewModel(), )</ID>
-    <ID>FunctionNaming:PlayerScreen.kt$@Composable private fun CoverArt( coverUri: String?, title: String, modifier: Modifier = Modifier, )</ID>
-    <ID>FunctionNaming:PlayerScreen.kt$@Composable private fun SpeedControl( currentSpeed: Float, onSpeedChanged: (Float) -&gt; Unit, )</ID>
-    <ID>FunctionNaming:PlayerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlayerScreen( bookId: Long, autoPlay: Boolean = true, onBack: () -&gt; Unit, viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) }, )</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun LanguageDialog( currentTag: String?, onSelect: (String?) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun LicenseDialog(onDismiss: () -&gt; Unit)</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SectionHeader( title: String, modifier: Modifier = Modifier, )</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun ThemeDialog( current: ThemeMode, onSelect: (ThemeMode) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( onBack: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:Theme.kt$@Composable fun LabaTheme( darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolean = true, content: @Composable () -&gt; Unit, )</ID>
-    <ID>LongMethod:LibraryScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun BookCard( bookWithProgress: BookWithProgress, isActive: Boolean, isPlaying: Boolean, isAvailable: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
+    <ID>EnumNaming:LibraryViewModel.kt$ContinueBookStatus$Continue</ID>
+    <ID>EnumNaming:LibraryViewModel.kt$ContinueBookStatus$LastPlayed</ID>
+    <ID>EnumNaming:LibraryViewModel.kt$ContinueBookStatus$Paused</ID>
+    <ID>EnumNaming:LibraryViewModel.kt$ContinueBookStatus$Playing</ID>
+    <ID>FinalNewline:FolderScanner.kt$com.dalapenko.laba.feature.library.FolderScanner.kt</ID>
+    <ID>ImportOrdering:AppModule.kt$import androidx.datastore.preferences.core.PreferenceDataStoreFactory import androidx.room.Room import com.dalapenko.laba.core.database.AppDatabase import com.dalapenko.laba.core.data.BookRepository import com.dalapenko.laba.core.data.ProgressRepository import com.dalapenko.laba.feature.library.FolderScanner import org.koin.android.ext.koin.androidContext import org.koin.dsl.module import java.io.File</ID>
+    <ID>ImportOrdering:AppNavHost.kt$import androidx.compose.animation.core.FastOutSlowInEasing import androidx.compose.animation.core.tween import androidx.compose.animation.fadeIn import androidx.compose.animation.fadeOut import androidx.compose.animation.slideInHorizontally import androidx.compose.animation.slideOutHorizontally import androidx.compose.animation.slideInVertically import androidx.compose.animation.slideOutVertically import androidx.compose.runtime.Composable import androidx.navigation.NavHostController import androidx.navigation.compose.NavHost import androidx.navigation.compose.composable import androidx.navigation.toRoute import com.dalapenko.laba.feature.library.LibraryScreen import com.dalapenko.laba.feature.player.PlayerScreen import com.dalapenko.laba.feature.settings.SettingsScreen</ID>
+    <ID>ImportOrdering:BookRepositoryTest.kt$import app.cash.turbine.test import com.dalapenko.laba.core.data.BookRepository import com.dalapenko.laba.core.database.AppDatabase import com.dalapenko.laba.core.database.dao.BookDao import com.dalapenko.laba.core.database.dao.ProgressDao import com.dalapenko.laba.core.database.dao.TrackDao import com.dalapenko.laba.core.database.entity.BookEntity import com.dalapenko.laba.core.database.entity.ProgressEntity import com.dalapenko.laba.testBook import com.dalapenko.laba.testProgress import com.dalapenko.laba.testTrack import io.mockk.coEvery import io.mockk.coJustRun import io.mockk.coVerify import io.mockk.coVerifyOrder import io.mockk.every import io.mockk.mockk import androidx.room.withTransaction import io.mockk.mockkStatic import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.test.runTest import org.junit.Assert.assertEquals import org.junit.Assert.assertNull import org.junit.Before import org.junit.Test</ID>
+    <ID>ImportOrdering:FolderScanner.kt$import android.content.Context import android.media.MediaMetadataRetriever import android.net.Uri import android.provider.DocumentsContract import androidx.documentfile.provider.DocumentFile import com.dalapenko.laba.core.database.entity.BookEntity import com.dalapenko.laba.core.database.entity.TrackEntity import kotlinx.coroutines.Dispatchers import kotlinx.coroutines.withContext import java.io.File import androidx.core.net.toUri import android.util.Log</ID>
+    <ID>ImportOrdering:PlaybackController.kt$import android.content.ComponentName import android.content.Context import android.os.Bundle import androidx.media3.common.MediaItem import androidx.media3.common.MediaMetadata import androidx.media3.common.PlaybackException import androidx.media3.common.PlaybackParameters import androidx.media3.common.Player import androidx.media3.session.MediaController import androidx.media3.session.SessionCommand import androidx.media3.session.SessionToken import com.google.common.util.concurrent.MoreExecutors import kotlinx.coroutines.CoroutineScope import kotlinx.coroutines.Dispatchers import kotlinx.coroutines.Job import kotlinx.coroutines.SupervisorJob import kotlinx.coroutines.delay import kotlinx.coroutines.flow.MutableSharedFlow import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.flow.SharedFlow import kotlinx.coroutines.flow.StateFlow import kotlinx.coroutines.flow.asSharedFlow import kotlinx.coroutines.flow.asStateFlow import kotlinx.coroutines.launch import androidx.core.net.toUri import android.util.Log import java.util.concurrent.ConcurrentHashMap</ID>
+    <ID>ImportOrdering:PlayerViewModel.kt$import androidx.lifecycle.ViewModel import androidx.lifecycle.viewModelScope import com.dalapenko.laba.core.database.entity.BookEntity import com.dalapenko.laba.core.database.entity.ProgressEntity import com.dalapenko.laba.core.database.entity.TrackEntity import com.dalapenko.laba.core.data.BookRepository import com.dalapenko.laba.core.data.ProgressRepository import com.dalapenko.laba.core.media.PlaybackController import com.dalapenko.laba.core.media.PlaybackError import com.dalapenko.laba.core.media.PlaybackPreparer import com.dalapenko.laba.core.media.PlayerState import kotlinx.coroutines.flow.MutableSharedFlow import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.flow.SharedFlow import kotlinx.coroutines.flow.StateFlow import kotlinx.coroutines.flow.asSharedFlow import kotlinx.coroutines.flow.asStateFlow import kotlinx.coroutines.launch import android.util.Log</ID>
+    <ID>ImportOrdering:ProgressSaveWorker.kt$import android.content.Context import android.util.Log import androidx.work.CoroutineWorker import androidx.work.WorkerParameters import com.dalapenko.laba.core.database.entity.ProgressEntity import com.dalapenko.laba.core.data.ProgressRepository import org.koin.core.component.KoinComponent import org.koin.core.component.inject</ID>
+    <ID>ImportOrdering:SettingsScreen.kt$import androidx.appcompat.app.AppCompatDelegate import androidx.compose.foundation.clickable import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.rememberScrollState import androidx.compose.foundation.verticalScroll import androidx.compose.material.icons.Icons import androidx.compose.material.icons.automirrored.filled.ArrowBack import androidx.compose.material.icons.outlined.Code import androidx.compose.material.icons.outlined.Description import androidx.compose.material.icons.outlined.Policy import androidx.compose.material.icons.outlined.Info import androidx.compose.material.icons.outlined.Language import androidx.compose.material.icons.automirrored.outlined.OpenInNew import androidx.compose.material.icons.outlined.Palette import androidx.compose.material.icons.outlined.Person import androidx.compose.material3.AlertDialog import androidx.compose.material3.ExperimentalMaterial3Api import androidx.compose.material3.HorizontalDivider import androidx.compose.material3.Icon import androidx.compose.material3.IconButton import androidx.compose.material3.ListItem import androidx.compose.material3.MaterialTheme import androidx.compose.material3.RadioButton import androidx.compose.material3.Scaffold import androidx.compose.material3.Text import androidx.compose.material3.TextButton import androidx.compose.material3.TopAppBar import androidx.compose.material3.TopAppBarDefaults import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.input.nestedscroll.nestedScroll import androidx.compose.ui.platform.LocalUriHandler import androidx.compose.ui.res.stringResource import androidx.compose.ui.unit.dp import androidx.lifecycle.compose.collectAsStateWithLifecycle import com.dalapenko.laba.BuildConfig import com.dalapenko.laba.R import org.koin.androidx.compose.koinViewModel</ID>
+    <ID>Indentation:SettingsScreen.kt$ </ID>
+    <ID>Indentation:SettingsViewModel.kt$SettingsViewModel$ </ID>
     <ID>LongMethod:LibraryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun LibraryScreen( onBookClick: (Long) -&gt; Unit, onSettingsClick: () -&gt; Unit, viewModel: LibraryViewModel = koinViewModel(), )</ID>
     <ID>LongMethod:PlayerScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlayerScreen( bookId: Long, autoPlay: Boolean = true, onBack: () -&gt; Unit, viewModel: PlayerViewModel = koinViewModel { parametersOf(bookId, autoPlay) }, )</ID>
     <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( onBack: () -&gt; Unit, )</ID>
-    <ID>LongParameterList:LibraryScreen.kt$( bookWithProgress: BookWithProgress, isActive: Boolean, isPlaying: Boolean, isAvailable: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
-    <ID>LongParameterList:LibraryScreen.kt$( coverUri: String?, title: String, isActive: Boolean, isPlaying: Boolean, onCoverClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, )</ID>
-    <ID>LongParameterList:TestFixtures.kt$( bookId: Long = 1L, lastTrackId: Long = 1L, lastPositionMs: Long = 50_000L, completedTracksMs: Long = 0L, lastUpdated: Long = 1_000_000L, isCompleted: Boolean = false, playbackSpeed: Float = 1f, )</ID>
-    <ID>LongParameterList:TestFixtures.kt$( id: Long = 1L, bookId: Long = 1L, fileUri: String = "content://test/track1.mp3", fileName: String = "Chapter 01.mp3", durationMs: Long = 100_000L, sequenceOrder: Int = 0, )</ID>
-    <ID>LongParameterList:TestFixtures.kt$( id: Long = 1L, title: String = "Test Book", author: String? = "Test Author", totalDurationMs: Long = 300_000L, rootFolderUri: String = "content://test/tree/book1", coverUri: String? = null, isAvailable: Boolean = true, )</ID>
-    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$3</ID>
-    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$4</ID>
     <ID>MagicNumber:AppNavHost.kt$380</ID>
-    <ID>MagicNumber:ChapterBottomSheet.kt$1000</ID>
     <ID>MagicNumber:ChapterBottomSheet.kt$60</ID>
     <ID>MagicNumber:FolderScanner.kt$FolderScanner$0xFFFFFFFFL</ID>
     <ID>MagicNumber:LibraryScreen.kt$0.4f</ID>
-    <ID>MagicNumber:LibraryScreen.kt$100</ID>
-    <ID>MagicNumber:LibraryViewModel.kt$LibraryViewModel$5000</ID>
-    <ID>MagicNumber:PlaybackController.kt$PlaybackController$100</ID>
-    <ID>MagicNumber:PlaybackController.kt$PlaybackController$1000</ID>
     <ID>MagicNumber:PlaybackController.kt$PlaybackController$250</ID>
     <ID>MagicNumber:PlaybackController.kt$PlaybackController$5_000L</ID>
-    <ID>MagicNumber:PlaybackController.kt$PlaybackController.&lt;no name provided&gt;$3</ID>
-    <ID>MagicNumber:PlaybackService.kt$PlaybackService$100</ID>
-    <ID>MagicNumber:PlaybackService.kt$PlaybackService$1000</ID>
     <ID>MagicNumber:PlaybackService.kt$PlaybackService$10_000L</ID>
     <ID>MagicNumber:PlayerScreen.kt$0.5f</ID>
     <ID>MagicNumber:PlayerScreen.kt$0.7f</ID>
     <ID>MagicNumber:PlayerScreen.kt$0.85f</ID>
-    <ID>MagicNumber:PlayerScreen.kt$1000</ID>
     <ID>MagicNumber:PlayerScreen.kt$3600</ID>
     <ID>MagicNumber:PlayerScreen.kt$60</ID>
     <ID>MagicNumber:PlayerViewModel.kt$PlayerViewModel$0.5f</ID>
-    <ID>MagicNumber:PlayerViewModel.kt$PlayerViewModel$1000</ID>
-    <ID>MagicNumber:PlayerViewModel.kt$PlayerViewModel$5000</ID>
     <ID>MaxLineLength:LibraryScreen.kt$contentDescription = if (isPlaying) stringResource(R.string.cd_playing) else stringResource(R.string.cd_paused)</ID>
     <ID>MaxLineLength:PlayerScreen.kt$Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = stringResource(R.string.cd_show_chapters))</ID>
     <ID>MaxLineLength:PlayerScreen.kt$contentDescription = if (playerState.isPlaying) stringResource(R.string.cd_pause) else stringResource(R.string.cd_play)</ID>
     <ID>MaxLineLength:PlayerScreen.kt$imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow</ID>
     <ID>MaxLineLength:PlayerScreen.kt$text = formatTime(if (isSeeking) seekPosition.toLong() else playerState.currentPositionMs)</ID>
+    <ID>MaximumLineLength:LibraryScreen.kt$ </ID>
+    <ID>MaximumLineLength:PlayerScreen.kt$ </ID>
+    <ID>MultiLineIfElse:ChapterBottomSheet.kt$null</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$MaterialTheme.colorScheme.error</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$MaterialTheme.colorScheme.primary</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$MaterialTheme.colorScheme.surfaceContainerHigh</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$MaterialTheme.colorScheme.surfaceContainerLow</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$Modifier</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$Modifier.clickable(onClick = onCoverClick)</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$onBookClick(bookId)</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$pluralStringResource(R.plurals.snackbar_added_books, result.count, result.count)</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$stringResource(R.string.snackbar_added_single, result.title)</ID>
+    <ID>MultiLineIfElse:LibraryScreen.kt$viewModel.onUnavailableBookClicked()</ID>
+    <ID>MultiLineIfElse:LibraryViewModel.kt$LibraryViewModel$(absolute.toFloat() / item.book.totalDurationMs).coerceIn(0f, 1f)</ID>
+    <ID>MultiLineIfElse:LibraryViewModel.kt$LibraryViewModel$0f</ID>
+    <ID>MultiLineIfElse:LibraryViewModel.kt$LibraryViewModel$ContinueBookStatus.Continue</ID>
+    <ID>MultiLineIfElse:LibraryViewModel.kt$LibraryViewModel$ContinueBookStatus.LastPlayed</ID>
+    <ID>MultiLineIfElse:LibraryViewModel.kt$LibraryViewModel$item</ID>
+    <ID>MultiLineIfElse:SettingsScreen.kt$AppCompatDelegate.getApplicationLocales().toLanguageTags()</ID>
+    <ID>MultiLineIfElse:SettingsScreen.kt$null</ID>
+    <ID>MultiLineIfElse:SettingsViewModel.kt$SettingsViewModel$LocaleListCompat.forLanguageTags(tag)</ID>
+    <ID>MultiLineIfElse:SettingsViewModel.kt$SettingsViewModel$LocaleListCompat.getEmptyLocaleList()</ID>
+    <ID>MultiLineIfElse:Theme.kt$dynamicDarkColorScheme(context)</ID>
+    <ID>MultiLineIfElse:Theme.kt$dynamicLightColorScheme(context)</ID>
     <ID>NewLineAtEndOfFile:FolderScanner.kt$com.dalapenko.laba.feature.library.FolderScanner.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:PlayerViewModel.kt$PlayerViewModel$ </ID>
+    <ID>NoMultipleSpaces:LibraryViewModelTest.kt$LibraryViewModelTest$ </ID>
+    <ID>NoMultipleSpaces:MainActivity.kt$MainActivity$ </ID>
+    <ID>NoMultipleSpaces:PlayerViewModel.kt$PlayerUiState$ </ID>
+    <ID>NoMultipleSpaces:PlayerViewModelTest.kt$PlayerViewModelTest$ </ID>
+    <ID>NoMultipleSpaces:SettingsScreen.kt$ </ID>
+    <ID>NoTrailingSpaces:FolderScanner.kt$FolderScanner$ </ID>
+    <ID>NoTrailingSpaces:LabaApp.kt$LabaApp$ </ID>
+    <ID>NoTrailingSpaces:ProgressSaveWorker.kt$ProgressSaveWorker$ </ID>
+    <ID>NoTrailingSpaces:ProgressSaveWorker.kt$ProgressSaveWorker.Companion$ </ID>
     <ID>ReturnCount:BookRepository.kt$BookRepository$private fun computeProgressFraction(book: BookEntity, progress: ProgressEntity?): Float</ID>
     <ID>ReturnCount:PlaybackService.kt$PlaybackService$private fun scheduleProgressSaveViaWorkManager(immediate: Boolean = false)</ID>
     <ID>ReturnCount:PlaybackService.kt$PlaybackService$private suspend fun saveProgressSync()</ID>
     <ID>TooGenericExceptionCaught:PlaybackService.kt$PlaybackService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ProgressSaveWorker.kt$ProgressSaveWorker$e: Exception</ID>
-    <ID>TooManyFunctions:BookRepository.kt$BookRepository</ID>
-    <ID>TooManyFunctions:FolderScanner.kt$FolderScanner</ID>
     <ID>TooManyFunctions:PlaybackController.kt$PlaybackController</ID>
-    <ID>TooManyFunctions:PlayerViewModel.kt$PlayerViewModel : ViewModel</ID>
-    <ID>VariableNaming:SettingsRepository.kt$SettingsRepository$private val THEME_MODE = stringPreferencesKey("theme_mode")</ID>
+    <ID>TrailingCommaOnCallSite:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$( "CREATE UNIQUE INDEX IF NOT EXISTS index_books_rootFolderUri ON books(rootFolderUri)" )</ID>
+    <ID>TrailingCommaOnCallSite:AppModule.kt$( produceFile = { File(androidContext().filesDir, "settings.preferences_pb") } )</ID>
+    <ID>TrailingCommaOnCallSite:BookRepositoryTest.kt$BookRepositoryTest$( testProgress(bookId = 1L, completedTracksMs = 30_000L, lastPositionMs = 20_000L) )</ID>
+    <ID>TrailingCommaOnCallSite:BookRepositoryTest.kt$BookRepositoryTest$( testProgress(bookId = 1L, completedTracksMs = 80_000L, lastPositionMs = 30_000L) )</ID>
+    <ID>TrailingCommaOnCallSite:ChapterBottomSheet.kt$( modifier = Modifier .fillMaxWidth() .testTag("chapters_list") )</ID>
+    <ID>TrailingCommaOnCallSite:ChapterBottomSheet.kt$( onDismissRequest = onDismiss, sheetState = sheetState, modifier = Modifier.testTag("chapter_bottom_sheet") )</ID>
+    <ID>TrailingCommaOnCallSite:FolderScanner.kt$FolderScanner$( ScannedBook( title = firstMeta.album ?: dir.name ?: "Unknown Book", author = firstMeta.author, rootUri = dir.uri.toString(), tracks = tracks, coverUri = coverUri, ) )</ID>
+    <ID>TrailingCommaOnCallSite:FolderScanner.kt$FolderScanner$( ScannedTrack( fileUri = uri.toString(), fileName = fileName, durationMs = meta.durationMs, sequenceOrder = 0, ) )</ID>
+    <ID>TrailingCommaOnCallSite:FolderScanner.kt$FolderScanner$( uri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID), null, null, null )</ID>
+    <ID>TrailingCommaOnCallSite:NaturalCompareTest.kt$NaturalCompareTest$( listOf("1 - Track.mp3", "2 - Track.mp3", "03 - Track.mp3", "10 - Track.mp3"), sorted )</ID>
+    <ID>TrailingCommaOnCallSite:NaturalCompareTest.kt$NaturalCompareTest$( listOf("Chapter 1.mp3", "Chapter 2.mp3", "Chapter 10.mp3", "Chapter 20.mp3"), sorted )</ID>
+    <ID>TrailingCommaOnCallSite:PlaybackController.kt$PlaybackController$( MediaMetadata.Builder() .setTitle(item.title) .setArtist(item.artist) .apply { item.artworkUri?.let { setArtworkUri(it.toUri()) } } .build() )</ID>
+    <ID>TrailingCommaOnCallSite:PlaybackController.kt$PlaybackController$( currentPositionMs = position, durationMs = duration, currentMediaItemIndex = trackIndex, playbackSpeed = speed, isReady = false )</ID>
+    <ID>TrailingCommaOnCallSite:PlaybackPreparer.kt$PlaybackPreparer$( progress.copy( isCompleted = false, lastPositionMs = 0L, completedTracksMs = 0L, lastTrackId = tracks.first().id, lastUpdated = System.currentTimeMillis(), ) )</ID>
+    <ID>TrailingCommaOnCallSite:PlaybackService.kt$PlaybackService$( "progress_save_$bookId", ExistingWorkPolicy.REPLACE, saveRequest )</ID>
+    <ID>TrailingCommaOnCallSite:PlaybackService.kt$PlaybackService.PlaybackSessionCallback$( (session.player.currentPosition - SEEK_INCREMENT_MS).coerceAtLeast(0L) )</ID>
+    <ID>TrailingCommaOnCallSite:PlaybackService.kt$PlaybackService.PlaybackSessionCallback$( if (dur &gt; 0) { (session.player.currentPosition + SEEK_INCREMENT_MS).coerceAtMost(dur) } else { session.player.currentPosition + SEEK_INCREMENT_MS } )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( enabled = uiState.tracks.size &gt; 1 &amp;&amp; currentTrackIndex &lt; uiState.tracks.lastIndex, onClick = { viewModel.skipToTrack(currentTrackIndex + 1) }, modifier = Modifier.testTag("next_chapter_button") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( enabled = uiState.tracks.size &gt; 1 &amp;&amp; currentTrackIndex &gt; 0, onClick = { viewModel.skipToTrack(currentTrackIndex - 1) }, modifier = Modifier.testTag("previous_chapter_button") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( message = String.format(trackUnavailableTemplate, name), duration = SnackbarDuration.Short )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( onClick = onBack, modifier = Modifier.testTag("back_button") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( onClick = { showChapters.value = true }, enabled = uiState.tracks.size &gt; 1, modifier = Modifier.testTag("chapters_button") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( onClick = { viewModel.seekBack() }, modifier = Modifier.testTag("rewind_button") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( onClick = { viewModel.seekForward() }, modifier = Modifier.testTag("forward_button") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( text = String.format(Locale.ENGLISH, "%.2f×", currentSpeed), style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("speed_text") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerScreen.kt$( text = uiState.book?.title ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("player_book_title") )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerViewModel.kt$PlayerViewModel$( ProgressEntity( bookId = bookId, lastTrackId = currentTrack.id, lastPositionMs = state.currentPositionMs, completedTracksMs = completedTracksMs, lastUpdated = System.currentTimeMillis(), isCompleted = isCompleted, playbackSpeed = state.playbackSpeed, ) )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerViewModelTest.kt$PlayerViewModelTest$( currentPositionMs = 29_500L, currentMediaItemIndex = 0, durationMs = 30_000L, isPlaying = false )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerViewModelTest.kt$PlayerViewModelTest$( currentPositionMs = 29_500L, currentMediaItemIndex = 2, durationMs = 30_000L, isPlaying = false )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerViewModelTest.kt$PlayerViewModelTest$( match { !it.isCompleted &amp;&amp; it.lastPositionMs == 0L } )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerViewModelTest.kt$PlayerViewModelTest$( match { it.completedTracksMs == 30_000L &amp;&amp; // tracks 0+1 = 10000+20000 it.isCompleted } )</ID>
+    <ID>TrailingCommaOnCallSite:PlayerViewModelTest.kt$PlayerViewModelTest$( match { it.lastPositionMs == 29_500L &amp;&amp; it.isCompleted } )</ID>
+    <ID>TrailingCommaOnCallSite:ProgressEntity.kt$ProgressEntity$[ ForeignKey( entity = BookEntity::class, parentColumns = ["id"], childColumns = ["bookId"], onDelete = ForeignKey.CASCADE, ) ]</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgressSaveWorker.kt$ProgressSaveWorker$( context: Context, params: WorkerParameters )</ID>
+    <ID>Wrapping:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$(</ID>
+    <ID>Wrapping:PlaybackController.kt$PlaybackController$(</ID>
+    <ID>Wrapping:PlaybackController.kt$PlaybackController$(TAG, "Captured state for book $currentId: " + "position=${currentState.currentPositionMs}ms, " + "track=${currentState.currentMediaItemIndex}, " + "speed=${currentState.playbackSpeed}x")</ID>
+    <ID>Wrapping:PlaybackController.kt$PlaybackController$(TAG, "Retrieved snapshot for book $bookId: " + "position=${snapshot.currentPositionMs}ms, " + "track=${snapshot.currentMediaItemIndex}")</ID>
+    <ID>Wrapping:PlaybackService.kt$PlaybackService$(</ID>
+    <ID>Wrapping:PlaybackService.kt$PlaybackService$(TAG, "Progress saved: bookId=$bookId, position=${currentPosition}ms, " + "track=$currentIndex/${trackIds.size}, trackId=$currentTrackId, " + "completed=$isCompleted")</ID>
+    <ID>Wrapping:PlaybackService.kt$PlaybackService.&lt;no name provided&gt;$(</ID>
+    <ID>Wrapping:PlayerViewModel.kt$PlayerViewModel$(</ID>
+    <ID>Wrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Ignoring state update - different book is active " + "(current=${playbackController.currentBookId.value}, this=$bookId)")</ID>
+    <ID>Wrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Ignoring state update - track index ${state.currentMediaItemIndex} " + "exceeds our track count ${tracks.size}")</ID>
+    <ID>Wrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Progress saved to database for book $bookId: " + "position=${state.currentPositionMs}ms, trackId=${currentTrack.id}")</ID>
+    <ID>Wrapping:PlayerViewModel.kt$PlayerViewModel$(TAG, "Saving progress for book $bookId from $source: " + "position=${state.currentPositionMs}ms, " + "track=${state.currentMediaItemIndex}, " + "forceCompleted=$forceCompleted")</ID>
+    <ID>Wrapping:ProgressSaveWorker.kt$ProgressSaveWorker$(</ID>
+    <ID>Wrapping:ProgressSaveWorker.kt$ProgressSaveWorker$(TAG, "Progress saved via WorkManager for book $bookId: " + "position=${lastPositionMs}ms, trackId=$lastTrackId")</ID>
   </CurrentIssues>
 </SmellBaseline>

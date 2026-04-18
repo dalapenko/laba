@@ -19,6 +19,19 @@ detekt {
     autoCorrect = false
 }
 
+subprojects {
+    plugins.withId("io.gitlab.arturbosch.detekt") {
+        extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension>("detekt") {
+            buildUponDefaultConfig = true
+            allRules = false
+            config.setFrom(rootProject.file("detekt.yml"))
+            parallel = true
+            ignoreFailures = false
+            autoCorrect = false
+        }
+    }
+}
+
 dependencies {
     detektPlugins(libs.detekt.formatting)
 }

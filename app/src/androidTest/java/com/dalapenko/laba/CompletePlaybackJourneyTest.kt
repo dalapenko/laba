@@ -188,6 +188,9 @@ class CompletePlaybackJourneyTest : BaseKaspressoTest() {
 
             // Verify the library displays the DB progress (38%)
             withScreen<LibraryScreen> {
+                flakySafely { continueSection.assertIsDisplayed() }
+                continueHeader.assertIsDisplayed()
+                continueBookCard(bookId).assertIsDisplayed()
                 flakySafely { bookCard(bookId).assertIsDisplayed() }
                 bookProgressText(bookId).assertTextContains("38", substring = true)
             }

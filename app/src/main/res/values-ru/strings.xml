@@ -28,6 +28,10 @@
     <string name="dialog_delete_confirm">Удалить</string>
     <string name="dialog_delete_cancel">Отмена</string>
 
+    <string name="section_continue_listening">Продолжить прослушивание</string>
+    <string name="section_last_played">Последняя книга</string>
+    <string name="continue_status_continue">Продолжить</string>
+    <string name="continue_status_last_played">Последняя книга</string>
     <string name="chip_completed">Прослушана</string>
     <string name="progress_percent">%1$d%% прослушано</string>
     <string name="cd_cover_for">Обложка: %1$s</string>

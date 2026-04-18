@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -43,6 +44,7 @@ class LibraryViewModelTest {
     private val currentBookIdFlow = MutableStateFlow<Long?>(null)
     private val playerStateFlow = MutableStateFlow(PlayerState())
     private val booksWithProgressFlow = MutableStateFlow<List<BookWithProgress>>(emptyList())
+    private val lastPlayedBookIdFlow = MutableStateFlow<Long?>(null)
 
     @Before
     fun setup() {
@@ -52,7 +54,7 @@ class LibraryViewModelTest {
 
         // Repository stubs for init{} block
         every { mockRepository.observeAllBooksWithProgress() } returns booksWithProgressFlow
-        coEvery { mockProgressRepository.getLastPlayedBookId() } returns null
+        every { mockProgressRepository.observeLastPlayedBookId() } returns lastPlayedBookIdFlow
         coEvery { mockRepository.getBooksWithoutCover() } returns emptyList()
         coJustRun { mockRepository.recheckAllAvailability(any()) }
         justRun { mockController.cleanupOldSnapshots(any()) }
@@ -383,5 +385,74 @@ class LibraryViewModelTest {
             }
             cancelAndConsumeRemainingEvents()
         }
+    }
+
+    @Test
+    fun givenLastPlayedBook_whenObservingContinueBook_thenContinueSectionUsesThatBook() = runTest {
+        val firstBook = BookWithProgress(testBook(id = 1L, title = "Alpha"), null, 0f)
+        val lastPlayedProgress = testProgress(bookId = 2L, lastUpdated = 2_000L)
+        val secondBook = BookWithProgress(testBook(id = 2L, title = "Beta"), lastPlayedProgress, 0.4f)
+        booksWithProgressFlow.value = listOf(firstBook, secondBook)
+        lastPlayedBookIdFlow.value = 2L
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(2L, vm.continueBook.value?.book?.book?.id)
+        assertEquals(ContinueBookStatus.Continue, vm.continueBook.value?.status)
+        assertEquals(listOf(1L), vm.libraryBooks.value.map { it.book.id })
+    }
+
+    @Test
+    fun givenActiveBook_whenObservingContinueBook_thenActiveBookOverridesLastPlayed() = runTest {
+        val activeBook = BookWithProgress(testBook(id = 1L, title = "Active"), testProgress(bookId = 1L), 0.2f)
+        val lastPlayedBook = BookWithProgress(testBook(id = 2L, title = "Saved"), testProgress(bookId = 2L), 0.4f)
+        booksWithProgressFlow.value = listOf(activeBook, lastPlayedBook)
+        currentBookIdFlow.value = 1L
+        playerStateFlow.value = PlayerState(isPlaying = true)
+        lastPlayedBookIdFlow.value = 2L
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(1L, vm.continueBook.value?.book?.book?.id)
+        assertEquals(ContinueBookStatus.Playing, vm.continueBook.value?.status)
+        assertEquals(listOf(2L), vm.libraryBooks.value.map { it.book.id })
+    }
+
+    @Test
+    fun givenCompletedLastPlayedBook_whenObservingContinueBook_thenSectionIsHidden() = runTest {
+        val completedBook = BookWithProgress(
+            testBook(id = 3L, title = "Done"),
+            testProgress(bookId = 3L, isCompleted = true),
+            1f,
+        )
+        booksWithProgressFlow.value = listOf(completedBook)
+        lastPlayedBookIdFlow.value = 3L
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertNull(vm.continueBook.value)
+        assertEquals(listOf(3L), vm.libraryBooks.value.map { it.book.id })
+    }
+
+    @Test
+    fun givenUnavailableLastPlayedBook_whenObservingContinueBook_thenShowsLastPlayedStatus() = runTest {
+        val unavailableBook = BookWithProgress(
+            testBook(id = 4L, title = "Missing", isAvailable = false),
+            testProgress(bookId = 4L),
+            0.5f,
+            isAvailable = false,
+        )
+        booksWithProgressFlow.value = listOf(unavailableBook)
+        lastPlayedBookIdFlow.value = 4L
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(4L, vm.continueBook.value?.book?.book?.id)
+        assertEquals(ContinueBookStatus.LastPlayed, vm.continueBook.value?.status)
+        assertTrue(vm.libraryBooks.value.isEmpty())
     }
 }

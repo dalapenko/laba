@@ -32,6 +32,10 @@
     <string name="dialog_delete_cancel">Cancel</string>
 
     <!-- Library Screen — book card -->
+    <string name="section_continue_listening">Continue listening</string>
+    <string name="section_last_played">Last played</string>
+    <string name="continue_status_continue">Continue</string>
+    <string name="continue_status_last_played">Last played</string>
     <string name="chip_completed">Completed</string>
     <string name="progress_percent">%1$d%% completed</string>
     <string name="cd_cover_for">Cover for %1$s</string>

@@ -617,12 +617,11 @@ style:
     active: false
   ForbiddenComment:
     active: true
-    values:
+    comments:
       - 'FIXME:'
       - 'STOPSHIP:'
       - 'TODO:'
     allowedPatterns: ''
-    customPatterns: ''
   ForbiddenImport:
     active: false
   ForbiddenMethodCall:
