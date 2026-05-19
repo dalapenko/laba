@@ -16,10 +16,11 @@ local.properties
 app/google-services.json
 
 # AI
-.beads
 .claude
+.pi/
 .agents/*
-swarm-report
+.agent-work/
+swarm-report/
 AGENTS.md
 CLAUDE.md
 skills-lock.json
