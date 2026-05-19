@@ -65,6 +65,7 @@ import com.dalapenko.laba.R
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private const val PLAYBACK_SPEED_STEP_COUNT = 20
 private const val PLAYBACK_SPEED_MIN = 0.5f
@@ -569,7 +570,7 @@ private fun SpeedControl(
         Slider(
             value = currentSpeed,
             onValueChange = { raw ->
-                val snapped = (raw * PLAYBACK_SPEED_STEP_COUNT).toInt() / PLAYBACK_SPEED_STEP_COUNT.toFloat()
+                val snapped = (raw * PLAYBACK_SPEED_STEP_COUNT).roundToInt() / PLAYBACK_SPEED_STEP_COUNT.toFloat()
                 onSpeedChanged(snapped.coerceIn(PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX))
             },
             valueRange = PLAYBACK_SPEED_MIN..PLAYBACK_SPEED_MAX,
