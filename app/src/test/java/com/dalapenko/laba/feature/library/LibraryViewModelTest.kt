@@ -24,7 +24,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -421,7 +420,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun givenCompletedLastPlayedBook_whenObservingContinueBook_thenSectionIsHidden() = runTest {
+    fun givenCompletedLastPlayedBook_whenObservingContinueBook_thenSectionShowsCompletedBook() = runTest {
         val completedBook = BookWithProgress(
             testBook(id = 3L, title = "Done"),
             testProgress(bookId = 3L, isCompleted = true),
@@ -433,8 +432,9 @@ class LibraryViewModelTest {
         val vm = createViewModel()
         advanceUntilIdle()
 
-        assertNull(vm.continueBook.value)
-        assertEquals(listOf(3L), vm.libraryBooks.value.map { it.book.id })
+        assertEquals(3L, vm.continueBook.value?.book?.book?.id)
+        assertEquals(ContinueBookStatus.CONTINUE, vm.continueBook.value?.status)
+        assertTrue(vm.libraryBooks.value.isEmpty())
     }
 
     @Test

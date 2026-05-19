@@ -125,7 +125,7 @@ class LibraryViewModel(
         }
 
         when {
-            activeBook != null && activeBook.progress?.isCompleted != true -> {
+            activeBook != null -> {
                 ContinueBookUiState(
                     book = activeBook,
                     status = if (playerState.isPlaying) ContinueBookStatus.PLAYING else ContinueBookStatus.PAUSED,
@@ -135,7 +135,6 @@ class LibraryViewModel(
             fallbackBookId != null -> {
                 val lastPlayedBook = bookItems.firstOrNull { it.book.id == fallbackBookId }
                     ?: return@combine null
-                if (lastPlayedBook.progress?.isCompleted == true) return@combine null
                 ContinueBookUiState(
                     book = lastPlayedBook,
                     status = if (lastPlayedBook.isAvailable) {

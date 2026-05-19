@@ -14,10 +14,10 @@ interface ProgressDao {
     @Query("SELECT * FROM progress WHERE bookId = :bookId")
     suspend fun getByBook(bookId: Long): ProgressEntity?
 
-    @Query("SELECT * FROM progress WHERE isCompleted = 0 ORDER BY lastUpdated DESC LIMIT 1")
+    @Query("SELECT * FROM progress ORDER BY lastUpdated DESC LIMIT 1")
     suspend fun getLastPlayed(): ProgressEntity?
 
-    @Query("SELECT bookId FROM progress WHERE isCompleted = 0 ORDER BY lastUpdated DESC LIMIT 1")
+    @Query("SELECT bookId FROM progress ORDER BY lastUpdated DESC LIMIT 1")
     fun observeLastPlayedBookId(): Flow<Long?>
 
     @Query("SELECT * FROM progress")
