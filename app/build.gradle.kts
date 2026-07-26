@@ -22,14 +22,14 @@ rootProject.file("local.properties").also { f ->
 
 android {
     namespace = "com.dalapenko.laba"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.dalapenko.laba"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
-        versionName = "1.2.1"
+        versionName = "1.2.2"
 
         testInstrumentationRunner = "com.dalapenko.laba.LabaTestRunner"
 
@@ -65,8 +65,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     testOptions {
@@ -173,6 +173,8 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.koin.test)
 
     // Android UI Testing
     androidTestImplementation(libs.androidx.junit)

@@ -38,31 +38,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import kotlin.time.Duration.Companion.milliseconds
 
 class PlaybackService : MediaSessionService() {
-
-    companion object {
-        const val ACTION_SEEK_BACK = "com.dalapenko.laba.SEEK_BACK"
-        const val ACTION_SEEK_FORWARD = "com.dalapenko.laba.SEEK_FORWARD"
-        const val ACTION_SET_BOOK_METADATA = "com.dalapenko.laba.SET_BOOK_METADATA"
-        const val KEY_BOOK_ID = "bookId"
-        const val KEY_TRACK_IDS = "trackIds"
-        const val KEY_TRACK_DURATIONS = "trackDurations"
-        const val SEEK_INCREMENT_MS = 10_000L
-        private const val COMPLETION_THRESHOLD_MS = 1_000L
-        private const val PERIODIC_SAVE_INTERVAL_MS = 3_000L // Save every 3 seconds
-        private const val TAG = "PlaybackService"
-    }
-
-    private data class ProgressSaveSnapshot(
-        val bookId: Long,
-        val currentTrackId: Long,
-        val currentIndex: Int,
-        val currentPosition: Long,
-        val completedTracksMs: Long,
-        val playbackSpeed: Float,
-        val isCompleted: Boolean,
-    )
 
     private val repository: ProgressRepository by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -147,7 +125,7 @@ class PlaybackService : MediaSessionService() {
 
         periodicSaveJob = scope.launch {
             while (true) {
-                delay(PERIODIC_SAVE_INTERVAL_MS)
+                delay(PERIODIC_SAVE_INTERVAL_MS.milliseconds)
                 saveProgressImmediately()
             }
         }
@@ -261,31 +239,18 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    private fun currentProgressSnapshot(player: Player): ProgressSaveSnapshot? {
-        val bookId = currentBookId
-        val currentIndex = player.currentMediaItemIndex
-        val isValidIndex = currentIndex in trackIds.indices
-        if (!isValidIndex && trackIds.isNotEmpty()) {
-            Log.w(TAG, "Invalid track index: $currentIndex (total: ${trackIds.size})")
-        }
-        return if (bookId != null && isValidIndex) {
-            val currentPosition = player.currentPosition.coerceAtLeast(0)
-            val duration = player.duration.coerceAtLeast(0)
-            val isLastTrack = currentIndex >= trackIds.lastIndex
-            val nearEnd = duration > 0 && currentPosition >= duration - COMPLETION_THRESHOLD_MS
-            ProgressSaveSnapshot(
-                bookId = bookId,
-                currentTrackId = trackIds[currentIndex],
-                currentIndex = currentIndex,
-                currentPosition = currentPosition,
-                completedTracksMs = trackDurations.take(currentIndex).sum(),
-                playbackSpeed = player.playbackParameters.speed,
-                isCompleted = isLastTrack && nearEnd && !player.isPlaying,
-            )
-        } else {
-            null
-        }
-    }
+    private fun currentProgressSnapshot(player: Player): ProgressSaveSnapshot? = computeProgressSnapshot(
+        PlaybackSnapshotInput(
+            bookId = currentBookId,
+            trackIds = trackIds,
+            trackDurations = trackDurations,
+            currentIndex = player.currentMediaItemIndex,
+            currentPositionMs = player.currentPosition,
+            durationMs = player.duration,
+            isPlaying = player.isPlaying,
+            playbackSpeed = player.playbackParameters.speed,
+        ),
+    )
 
     override fun onDestroy() {
         if (Log.isLoggable(TAG, Log.DEBUG)) {
@@ -385,3 +350,67 @@ class PlaybackService : MediaSessionService() {
         }
     }
 }
+
+private const val TAG = "PlaybackService"
+private const val COMPLETION_THRESHOLD_MS = 1_000L
+
+internal data class ProgressSaveSnapshot(
+    val bookId: Long,
+    val currentTrackId: Long,
+    val currentIndex: Int,
+    val currentPosition: Long,
+    val completedTracksMs: Long,
+    val playbackSpeed: Float,
+    val isCompleted: Boolean,
+)
+
+internal data class PlaybackSnapshotInput(
+    val bookId: Long?,
+    val trackIds: List<Long>,
+    val trackDurations: List<Long>,
+    val currentIndex: Int,
+    val currentPositionMs: Long,
+    val durationMs: Long,
+    val isPlaying: Boolean,
+    val playbackSpeed: Float,
+)
+
+/**
+ * Pure decision logic for whether/what progress to save, extracted from [PlaybackService]
+ * so it can be unit-tested without a real Media3 [androidx.media3.common.Player] instance.
+ */
+internal fun computeProgressSnapshot(input: PlaybackSnapshotInput): ProgressSaveSnapshot? {
+    val trackIds = input.trackIds
+    val currentIndex = input.currentIndex
+    val isValidIndex = currentIndex in trackIds.indices
+    if (!isValidIndex && trackIds.isNotEmpty()) {
+        Log.w(TAG, "Invalid track index: $currentIndex (total: ${trackIds.size})")
+    }
+    val bookId = input.bookId
+    if (bookId == null || !isValidIndex) return null
+
+    val currentPosition = input.currentPositionMs.coerceAtLeast(0)
+    val duration = input.durationMs.coerceAtLeast(0)
+    val isLastTrack = currentIndex >= trackIds.lastIndex
+    val nearEnd = duration > 0 && currentPosition >= duration - COMPLETION_THRESHOLD_MS
+    return ProgressSaveSnapshot(
+        bookId = bookId,
+        currentTrackId = trackIds[currentIndex],
+        currentIndex = currentIndex,
+        currentPosition = currentPosition,
+        completedTracksMs = input.trackDurations.take(currentIndex).sum(),
+        playbackSpeed = input.playbackSpeed,
+        isCompleted = isLastTrack && nearEnd && !input.isPlaying,
+    )
+}
+
+private const val ACTION_SEEK_BACK = "com.dalapenko.laba.SEEK_BACK"
+private const val ACTION_SEEK_FORWARD = "com.dalapenko.laba.SEEK_FORWARD"
+private const val ACTION_SET_BOOK_METADATA = "com.dalapenko.laba.SET_BOOK_METADATA"
+
+private const val KEY_BOOK_ID = "bookId"
+private const val KEY_TRACK_IDS = "trackIds"
+private const val KEY_TRACK_DURATIONS = "trackDurations"
+
+private const val SEEK_INCREMENT_MS = 10_000L
+private const val PERIODIC_SAVE_INTERVAL_MS = 3_000L // Save every 3 seconds
