@@ -28,11 +28,13 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -43,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,16 +75,6 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.util.Locale
 import kotlin.math.roundToInt
-
-private const val PLAYBACK_SPEED_STEP_COUNT = 20
-private const val PLAYBACK_SPEED_MIN = 0.5f
-private const val PLAYBACK_SPEED_MAX = 2.0f
-private const val PLAYBACK_SPEED_SLIDER_STEPS = 29
-private const val MILLIS_PER_SECOND = 1000
-private const val SECONDS_PER_HOUR = 3600
-private const val SECONDS_PER_MINUTE = 60
-private const val LANDSCAPE_COVER_HEIGHT_FRACTION = 0.85f
-private const val PORTRAIT_COVER_WIDTH_FRACTION = 0.7f
 
 private val LANDSCAPE_TRANSPORT_ICON_SIZE = 32.dp
 private val LANDSCAPE_TRANSPORT_PLAY_BUTTON_SIZE = 56.dp
@@ -129,6 +122,13 @@ private data class TransportActions(
     val onSetSpeed: (Float) -> Unit,
 )
 
+/** Bundles the sleep-timer viewmodel callbacks separately so [PlayerActions] stays under the param-count limit. */
+private data class SleepTimerActions(
+    val onStartFixedDuration: (Long) -> Unit,
+    val onStartEndOfChapter: () -> Unit,
+    val onCancel: () -> Unit,
+)
+
 @Composable
 fun PlayerScreen(
     bookId: Long,
@@ -155,12 +155,20 @@ fun PlayerScreen(
             onSetSpeed = viewModel::setSpeed,
         )
     }
+    val sleepTimerActions = remember(viewModel) {
+        SleepTimerActions(
+            onStartFixedDuration = viewModel::startSleepTimerFixed,
+            onStartEndOfChapter = viewModel::startSleepTimerEndOfChapter,
+            onCancel = viewModel::cancelSleepTimer,
+        )
+    }
 
     PlayerScaffold(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
         onBack = onBack,
         actions = actions,
+        sleepTimerActions = sleepTimerActions,
     )
 }
 
@@ -197,9 +205,11 @@ private fun PlayerScaffold(
     snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     actions: PlayerActions,
+    sleepTimerActions: SleepTimerActions,
 ) {
     val playerState = uiState.playerState
     val showChapters = remember { mutableStateOf(false) }
+    val showSleepTimer = remember { mutableStateOf(false) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold(
@@ -209,8 +219,10 @@ private fun PlayerScaffold(
             PlayerTopBar(
                 title = uiState.book?.title ?: "",
                 chaptersEnabled = uiState.tracks.size > 1,
+                sleepTimerActive = uiState.sleepTimerState.isActive,
                 onBack = onBack,
                 onShowChapters = { showChapters.value = true },
+                onShowSleepTimer = { showSleepTimer.value = true },
             )
         },
     ) { padding ->
@@ -227,6 +239,25 @@ private fun PlayerScaffold(
         }
     }
 
+    PlayerBottomSheets(
+        uiState = uiState,
+        playerState = playerState,
+        actions = actions,
+        sleepTimerActions = sleepTimerActions,
+        showChapters = showChapters,
+        showSleepTimer = showSleepTimer,
+    )
+}
+
+@Composable
+private fun PlayerBottomSheets(
+    uiState: PlayerUiState,
+    playerState: PlayerState,
+    actions: PlayerActions,
+    sleepTimerActions: SleepTimerActions,
+    showChapters: MutableState<Boolean>,
+    showSleepTimer: MutableState<Boolean>,
+) {
     if (showChapters.value) {
         ChapterBottomSheet(
             tracks = uiState.tracks,
@@ -236,6 +267,27 @@ private fun PlayerScaffold(
                 showChapters.value = false
             },
             onDismiss = { showChapters.value = false },
+        )
+    }
+
+    if (showSleepTimer.value) {
+        SleepTimerBottomSheet(
+            isActive = uiState.sleepTimerState.isActive,
+            remainingMs = uiState.sleepTimerState.remainingMs,
+            remainingChapterMs = (playerState.durationMs - playerState.currentPositionMs).coerceAtLeast(0L),
+            onStartFixedDuration = { durationMs ->
+                sleepTimerActions.onStartFixedDuration(durationMs)
+                showSleepTimer.value = false
+            },
+            onStartEndOfChapter = {
+                sleepTimerActions.onStartEndOfChapter()
+                showSleepTimer.value = false
+            },
+            onCancel = {
+                sleepTimerActions.onCancel()
+                showSleepTimer.value = false
+            },
+            onDismiss = { showSleepTimer.value = false },
         )
     }
 }
@@ -257,8 +309,10 @@ private fun LoadingIndicator(padding: PaddingValues) {
 private fun PlayerTopBar(
     title: String,
     chaptersEnabled: Boolean,
+    sleepTimerActive: Boolean,
     onBack: () -> Unit,
     onShowChapters: () -> Unit,
+    onShowSleepTimer: () -> Unit,
 ) {
     TopAppBar(
         title = {
@@ -281,6 +335,16 @@ private fun PlayerTopBar(
             }
         },
         actions = {
+            IconButton(
+                onClick = onShowSleepTimer,
+                modifier = Modifier.testTag("sleep_timer_button"),
+            ) {
+                Icon(
+                    Icons.Outlined.Bedtime,
+                    contentDescription = stringResource(R.string.cd_sleep_timer),
+                    tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                )
+            }
             IconButton(
                 onClick = onShowChapters,
                 enabled = chaptersEnabled,
@@ -702,3 +766,13 @@ private fun formatTime(ms: Long): String {
         String.format(Locale.ENGLISH, "%d:%02d", minutes, seconds)
     }
 }
+
+private const val PLAYBACK_SPEED_STEP_COUNT = 20
+private const val PLAYBACK_SPEED_MIN = 0.5f
+private const val PLAYBACK_SPEED_MAX = 2.0f
+private const val PLAYBACK_SPEED_SLIDER_STEPS = 29
+private const val MILLIS_PER_SECOND = 1000
+private const val SECONDS_PER_HOUR = 3600
+private const val SECONDS_PER_MINUTE = 60
+private const val LANDSCAPE_COVER_HEIGHT_FRACTION = 0.85f
+private const val PORTRAIT_COVER_WIDTH_FRACTION = 0.7f

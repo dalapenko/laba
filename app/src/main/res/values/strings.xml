@@ -70,6 +70,13 @@
     <string name="chapters_title">Chapters</string>
     <string name="cd_currently_playing">Currently playing</string>
 
+    <!-- Sleep Timer -->
+    <string name="cd_sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_title">Sleep timer</string>
+    <string name="sleep_timer_end_of_chapter">Stop at end of chapter</string>
+    <string name="sleep_timer_start">Start</string>
+    <string name="sleep_timer_cancel">Cancel timer</string>
+
     <!-- PlaybackService — notification buttons -->
     <string name="notification_rewind_10">Rewind 10 seconds</string>
     <string name="notification_forward_10">Forward 10 seconds</string>

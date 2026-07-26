@@ -12,6 +12,8 @@ import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaybackError
 import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
+import com.dalapenko.laba.core.media.SleepTimerController
+import com.dalapenko.laba.core.media.SleepTimerState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -19,10 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-private const val COMPLETION_THRESHOLD_MS = 1000L
-private const val PLAYBACK_SPEED_MIN = 0.5f
-private const val PLAYBACK_SPEED_MAX = 2.0f
 
 sealed interface PlayerEvent {
     data object ClosePlayer : PlayerEvent
@@ -35,16 +33,23 @@ data class PlayerUiState(
     val playerState: PlayerState = PlayerState(),
     val isLoading: Boolean = true,
     val isInitializing: Boolean = true, // True until correct initial state is set
+    val sleepTimerState: SleepTimerState = SleepTimerState(),
 )
 
+/** Navigation arguments, bundled so the [PlayerViewModel] constructor stays under detekt's parameter-count limit. */
+data class PlayerNavArgs(val bookId: Long, val autoPlay: Boolean)
+
 class PlayerViewModel(
-    private val bookId: Long,
-    private val autoPlay: Boolean,
+    private val navArgs: PlayerNavArgs,
     private val repository: BookRepository,
     private val progressRepository: ProgressRepository,
     private val playbackController: PlaybackController,
     private val playbackPreparer: PlaybackPreparer,
+    private val sleepTimerController: SleepTimerController,
 ) : ViewModel() {
+
+    private val bookId: Long get() = navArgs.bookId
+    private val autoPlay: Boolean get() = navArgs.autoPlay
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<PlayerEvent> = _events.asSharedFlow()
@@ -56,6 +61,7 @@ class PlayerViewModel(
         loadBook()
         collectPlayerState()
         observePlaybackErrors()
+        collectSleepTimerState()
     }
 
     private fun loadBook() {
@@ -162,6 +168,26 @@ class PlayerViewModel(
         playbackController.setSpeed(speed.coerceIn(PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX))
     }
 
+    fun startSleepTimerFixed(durationMs: Long) {
+        sleepTimerController.startFixedDuration(durationMs)
+    }
+
+    fun startSleepTimerEndOfChapter() {
+        sleepTimerController.startEndOfChapter()
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerController.cancel()
+    }
+
+    private fun collectSleepTimerState() {
+        viewModelScope.launch {
+            sleepTimerController.state.collect { state ->
+                _uiState.value = _uiState.value.copy(sleepTimerState = state)
+            }
+        }
+    }
+
     private fun saveProgressInternal(forceCompleted: Boolean = false) {
         // ALWAYS use snapshot if available (continuously updated by collectPlayerState)
         // Fall back to local _uiState.playerState (never use global playbackController.playerState)
@@ -238,5 +264,9 @@ class PlayerViewModel(
         }
     }
 }
+
+private const val COMPLETION_THRESHOLD_MS = 1000L
+private const val PLAYBACK_SPEED_MIN = 0.5f
+private const val PLAYBACK_SPEED_MAX = 2.0f
 
 private const val TAG = "PlayerViewModel"

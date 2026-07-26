@@ -8,6 +8,8 @@ import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaybackError
 import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
+import com.dalapenko.laba.core.media.SleepTimerController
+import com.dalapenko.laba.core.media.SleepTimerState
 import com.dalapenko.laba.testBook
 import com.dalapenko.laba.testProgress
 import com.dalapenko.laba.testTrack
@@ -40,10 +42,12 @@ class PlayerViewModelTest {
     private val mockRepository = mockk<BookRepository>()
     private val mockProgressRepository = mockk<ProgressRepository>()
     private val mockController = mockk<PlaybackController>()
+    private val mockSleepTimerController = mockk<SleepTimerController>()
 
     private val currentBookIdFlow = MutableStateFlow<Long?>(null)
     private val playerStateFlow = MutableStateFlow(PlayerState())
     private val playbackErrorFlow = MutableSharedFlow<PlaybackError>(extraBufferCapacity = 1)
+    private val sleepTimerStateFlow = MutableStateFlow(SleepTimerState())
 
     private val bookId = 1L
 
@@ -52,6 +56,7 @@ class PlayerViewModelTest {
         every { mockController.currentBookId } returns currentBookIdFlow
         every { mockController.playerState } returns playerStateFlow
         every { mockController.playbackError } returns playbackErrorFlow
+        every { mockSleepTimerController.state } returns sleepTimerStateFlow
 
         // Default: book not found — override per test
         coEvery { mockRepository.getBookWithTracks(any()) } returns null
@@ -73,7 +78,14 @@ class PlayerViewModelTest {
 
     private fun createViewModel(autoPlay: Boolean = false): PlayerViewModel {
         val preparer = PlaybackPreparer(mockProgressRepository, mockController)
-        return PlayerViewModel(bookId, autoPlay, mockRepository, mockProgressRepository, mockController, preparer)
+        return PlayerViewModel(
+            navArgs = PlayerNavArgs(bookId, autoPlay),
+            repository = mockRepository,
+            progressRepository = mockProgressRepository,
+            playbackController = mockController,
+            playbackPreparer = preparer,
+            sleepTimerController = mockSleepTimerController,
+        )
     }
 
     // ── loadBook ──────────────────────────────────────────────────────────────

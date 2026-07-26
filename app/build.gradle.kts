@@ -20,6 +20,13 @@ rootProject.file("local.properties").also { f ->
     if (f.exists()) f.inputStream().use { localProperties.load(it) }
 }
 
+// Semantic version, single source of truth for versionCode/versionName.
+// versionCode = major * 10_000 + minor * 100 + patch, so it strictly increases
+// with every release as required by https://developer.android.com/studio/publish/versioning
+val versionMajor = 1
+val versionMinor = 3
+val versionPatch = 0
+
 android {
     namespace = "com.dalapenko.laba"
     compileSdk = 37
@@ -28,8 +35,8 @@ android {
         applicationId = "com.dalapenko.laba"
         minSdk = 27
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.2.2"
+        versionCode = versionMajor * 10_000 + versionMinor * 100 + versionPatch
+        versionName = "$versionMajor.$versionMinor.$versionPatch"
 
         testInstrumentationRunner = "com.dalapenko.laba.LabaTestRunner"
 
