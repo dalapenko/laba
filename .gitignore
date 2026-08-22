@@ -20,6 +20,8 @@ app/google-services.json
 .pi/
 .agents/*
 .agent-work/
+.codex/**
+openspec
 swarm-report/
 AGENTS.md
 CLAUDE.md

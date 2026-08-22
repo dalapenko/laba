@@ -3,6 +3,7 @@ package com.dalapenko.laba.feature.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.cash.turbine.test
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +73,44 @@ class SettingsRepositoryTest {
             }
         }
     }
+
+    @Test
+    fun givenNoStoredValue_whenObservingLastFixedSleepTimerMinutes_thenReturnsThirty() = runTest {
+        repository.lastFixedSleepTimerMinutes.test {
+            assertEquals(30, awaitItem())
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenStoredFixedSleepTimerMinutes_whenObserving_thenEmitsPersistedValue() = runTest {
+        fakeDataStore.setIntValue("last_fixed_sleep_timer_minutes", 75)
+
+        repository.lastFixedSleepTimerMinutes.test {
+            assertEquals(75, awaitItem())
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenFixedSleepTimerMinutes_whenSet_thenRoundTripsCorrectly() = runTest {
+        repository.setLastFixedSleepTimerMinutes(120)
+
+        repository.lastFixedSleepTimerMinutes.test {
+            assertEquals(120, awaitItem())
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenOutOfRangeStoredFixedSleepTimerMinutes_whenObserving_thenReturnsThirty() = runTest {
+        fakeDataStore.setIntValue("last_fixed_sleep_timer_minutes", 181)
+
+        repository.lastFixedSleepTimerMinutes.test {
+            assertEquals(30, awaitItem())
+            cancelAndConsumeRemainingEvents()
+        }
+    }
 }
 
 /**
@@ -95,6 +134,13 @@ private class FakePreferencesDataStore : DataStore<Preferences> {
     fun setStringValue(key: String, value: String) {
         val mutable = prefsFlow.value.toMutablePreferences()
         mutable[stringPreferencesKey(key)] = value
+        prefsFlow.value = mutable.toPreferences()
+    }
+
+    /** Helper for test setup — writes an integer key directly. */
+    fun setIntValue(key: String, value: Int) {
+        val mutable = prefsFlow.value.toMutablePreferences()
+        mutable[intPreferencesKey(key)] = value
         prefsFlow.value = mutable.toPreferences()
     }
 }

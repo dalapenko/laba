@@ -10,6 +10,7 @@ import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
 import com.dalapenko.laba.core.media.SleepTimerController
 import com.dalapenko.laba.core.media.SleepTimerState
+import com.dalapenko.laba.feature.settings.SettingsRepository
 import com.dalapenko.laba.testBook
 import com.dalapenko.laba.testProgress
 import com.dalapenko.laba.testTrack
@@ -43,11 +44,13 @@ class PlayerViewModelTest {
     private val mockProgressRepository = mockk<ProgressRepository>()
     private val mockController = mockk<PlaybackController>()
     private val mockSleepTimerController = mockk<SleepTimerController>()
+    private val mockSettingsRepository = mockk<SettingsRepository>()
 
     private val currentBookIdFlow = MutableStateFlow<Long?>(null)
     private val playerStateFlow = MutableStateFlow(PlayerState())
     private val playbackErrorFlow = MutableSharedFlow<PlaybackError>(extraBufferCapacity = 1)
     private val sleepTimerStateFlow = MutableStateFlow(SleepTimerState())
+    private val rememberedSleepTimerMinutesFlow = MutableStateFlow(30)
 
     private val bookId = 1L
 
@@ -57,12 +60,14 @@ class PlayerViewModelTest {
         every { mockController.playerState } returns playerStateFlow
         every { mockController.playbackError } returns playbackErrorFlow
         every { mockSleepTimerController.state } returns sleepTimerStateFlow
+        every { mockSettingsRepository.lastFixedSleepTimerMinutes } returns rememberedSleepTimerMinutesFlow
 
         // Default: book not found — override per test
         coEvery { mockRepository.getBookWithTracks(any()) } returns null
         coEvery { mockProgressRepository.getProgress(any()) } returns null
         coJustRun { mockProgressRepository.saveProgress(any()) }
         coJustRun { mockRepository.setBookAvailability(any(), any()) }
+        coJustRun { mockSettingsRepository.setLastFixedSleepTimerMinutes(any()) }
         justRun { mockController.captureCurrentBookState() }
         justRun { mockController.setPlaylist(any(), any()) }
         justRun { mockController.setBookMetadata(any(), any(), any()) }
@@ -73,6 +78,9 @@ class PlayerViewModelTest {
         justRun { mockController.pause() }
         justRun { mockController.stop() }
         justRun { mockController.updateBookSnapshot(any(), any()) }
+        justRun { mockSleepTimerController.startFixedDuration(any()) }
+        justRun { mockSleepTimerController.startEndOfChapter() }
+        justRun { mockSleepTimerController.cancel() }
         every { mockController.getBookSnapshot(any()) } returns null
     }
 
@@ -80,15 +88,82 @@ class PlayerViewModelTest {
         val preparer = PlaybackPreparer(mockProgressRepository, mockController)
         return PlayerViewModel(
             navArgs = PlayerNavArgs(bookId, autoPlay),
-            repository = mockRepository,
-            progressRepository = mockProgressRepository,
-            playbackController = mockController,
-            playbackPreparer = preparer,
-            sleepTimerController = mockSleepTimerController,
+            dependencies = PlayerViewModelDependencies(
+                repository = mockRepository,
+                progressRepository = mockProgressRepository,
+                playbackController = mockController,
+                playbackPreparer = preparer,
+                sleepTimerController = mockSleepTimerController,
+                settingsRepository = mockSettingsRepository,
+            ),
         )
     }
 
     // ── loadBook ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun givenRememberedSleepTimerMinutes_whenViewModelCreated_thenUiStateRestoresMinutes() = runTest {
+        rememberedSleepTimerMinutesFlow.value = 90
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(90, vm.uiState.value.rememberedSleepTimerMinutes)
+    }
+
+    @Test
+    fun givenSelectedFixedDuration_whenStarted_thenPreferenceIsPersistedAndControllerGetsMillis() = runTest {
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.startSleepTimerFixed(45)
+        advanceUntilIdle()
+
+        coVerify { mockSettingsRepository.setLastFixedSleepTimerMinutes(45) }
+        verify { mockSleepTimerController.startFixedDuration(45 * 60_000L) }
+    }
+
+    @Test
+    fun givenRememberedDuration_whenEndOfChapterStarted_thenPreferenceIsNotWritten() = runTest {
+        rememberedSleepTimerMinutesFlow.value = 90
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.startSleepTimerEndOfChapter()
+
+        verify { mockSleepTimerController.startEndOfChapter() }
+        coVerify(exactly = 0) { mockSettingsRepository.setLastFixedSleepTimerMinutes(any()) }
+        assertEquals(90, vm.uiState.value.rememberedSleepTimerMinutes)
+    }
+
+    @Test
+    fun givenFixedDuration_whenCancelled_thenRememberedDurationIsRetained() = runTest {
+        rememberedSleepTimerMinutesFlow.value = 75
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.startSleepTimerFixed(75)
+        advanceUntilIdle()
+        vm.cancelSleepTimer()
+
+        assertEquals(75, vm.uiState.value.rememberedSleepTimerMinutes)
+        coVerify(exactly = 1) { mockSettingsRepository.setLastFixedSleepTimerMinutes(75) }
+    }
+
+    @Test
+    fun givenFixedDuration_whenTimerExpires_thenRememberedDurationIsRetained() = runTest {
+        rememberedSleepTimerMinutesFlow.value = 60
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.startSleepTimerFixed(60)
+        advanceUntilIdle()
+        sleepTimerStateFlow.value = SleepTimerState()
+        advanceUntilIdle()
+
+        assertEquals(60, vm.uiState.value.rememberedSleepTimerMinutes)
+        coVerify(exactly = 1) { mockSettingsRepository.setLastFixedSleepTimerMinutes(60) }
+    }
 
     @Test
     fun givenBookExistsInDb_whenViewModelCreated_thenUiStateHasBookAndTracks() = runTest {

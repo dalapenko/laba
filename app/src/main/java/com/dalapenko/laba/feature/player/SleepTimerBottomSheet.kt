@@ -15,6 +15,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +35,8 @@ fun SleepTimerBottomSheet(
     isActive: Boolean,
     remainingMs: Long,
     remainingChapterMs: Long,
-    onStartFixedDuration: (Long) -> Unit,
+    initialFixedMinutes: Int,
+    onStartFixedDuration: (Int) -> Unit,
     onStartEndOfChapter: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
@@ -65,6 +67,7 @@ fun SleepTimerBottomSheet(
             } else {
                 ConfigureSleepTimerContent(
                     remainingChapterMs = remainingChapterMs,
+                    initialFixedMinutes = initialFixedMinutes,
                     onStartFixedDuration = onStartFixedDuration,
                     onStartEndOfChapter = onStartEndOfChapter,
                 )
@@ -98,11 +101,17 @@ private fun ActiveSleepTimerContent(remainingMs: Long, onCancel: () -> Unit) {
 @Composable
 private fun ConfigureSleepTimerContent(
     remainingChapterMs: Long,
-    onStartFixedDuration: (Long) -> Unit,
+    initialFixedMinutes: Int,
+    onStartFixedDuration: (Int) -> Unit,
     onStartEndOfChapter: () -> Unit,
 ) {
     var pendingEndOfChapter by remember { mutableStateOf(false) }
-    var pendingMinutes by remember { mutableIntStateOf(DEFAULT_TIMER_MINUTES) }
+    var pendingMinutes by remember { mutableIntStateOf(initialFixedMinutes) }
+    var hasLocalEdit by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialFixedMinutes) {
+        if (!hasLocalEdit) pendingMinutes = initialFixedMinutes
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -116,6 +125,7 @@ private fun ConfigureSleepTimerContent(
         Switch(
             checked = pendingEndOfChapter,
             onCheckedChange = { checked ->
+                hasLocalEdit = true
                 pendingEndOfChapter = checked
                 if (checked) {
                     pendingMinutes = millisToNearestMinute(remainingChapterMs)
@@ -130,6 +140,7 @@ private fun ConfigureSleepTimerContent(
     SleepTimerDial(
         minutes = pendingMinutes,
         onMinutesChanged = { newValue ->
+            hasLocalEdit = true
             pendingMinutes = newValue
             pendingEndOfChapter = false
         },
@@ -142,7 +153,7 @@ private fun ConfigureSleepTimerContent(
             if (pendingEndOfChapter) {
                 onStartEndOfChapter()
             } else {
-                onStartFixedDuration(pendingMinutes * MILLIS_PER_MINUTE)
+                onStartFixedDuration(pendingMinutes)
             }
         },
         enabled = pendingMinutes > 0,
@@ -164,7 +175,6 @@ private fun formatCountdown(remainingMs: Long): String {
     return String.format(Locale.ENGLISH, "%02d:%02d", minutes, seconds)
 }
 
-private const val DEFAULT_TIMER_MINUTES = 30
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val HALF_MINUTE_MS = 30_000L
 private const val MILLIS_PER_SECOND = 1000

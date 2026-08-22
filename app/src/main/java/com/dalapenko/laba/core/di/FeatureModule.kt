@@ -4,6 +4,7 @@ import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.feature.library.LibraryViewModel
 import com.dalapenko.laba.feature.player.PlayerNavArgs
 import com.dalapenko.laba.feature.player.PlayerViewModel
+import com.dalapenko.laba.feature.player.PlayerViewModelDependencies
 import com.dalapenko.laba.feature.settings.SettingsRepository
 import com.dalapenko.laba.feature.settings.SettingsViewModel
 import org.koin.core.module.dsl.viewModel
@@ -21,11 +22,14 @@ val featureModule = module {
     viewModel { params ->
         PlayerViewModel(
             navArgs = PlayerNavArgs(bookId = params.get<Long>(), autoPlay = params.get<Boolean>()),
-            repository = get(),
-            progressRepository = get(),
-            playbackController = get(),
-            playbackPreparer = get(),
-            sleepTimerController = get(),
+            dependencies = PlayerViewModelDependencies(
+                repository = get(),
+                progressRepository = get(),
+                playbackController = get(),
+                playbackPreparer = get(),
+                sleepTimerController = get(),
+                settingsRepository = get(),
+            ),
         )
     }
 }

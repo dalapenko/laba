@@ -14,6 +14,7 @@ import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
 import com.dalapenko.laba.core.media.SleepTimerController
 import com.dalapenko.laba.core.media.SleepTimerState
+import com.dalapenko.laba.feature.settings.SettingsRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -34,22 +35,35 @@ data class PlayerUiState(
     val isLoading: Boolean = true,
     val isInitializing: Boolean = true, // True until correct initial state is set
     val sleepTimerState: SleepTimerState = SleepTimerState(),
+    val rememberedSleepTimerMinutes: Int = DEFAULT_SLEEP_TIMER_MINUTES,
 )
 
 /** Navigation arguments, bundled so the [PlayerViewModel] constructor stays under detekt's parameter-count limit. */
 data class PlayerNavArgs(val bookId: Long, val autoPlay: Boolean)
 
+/** Player collaborators bundled to keep the ViewModel constructor within the Detekt limit. */
+class PlayerViewModelDependencies(
+    val repository: BookRepository,
+    val progressRepository: ProgressRepository,
+    val playbackController: PlaybackController,
+    val playbackPreparer: PlaybackPreparer,
+    val sleepTimerController: SleepTimerController,
+    val settingsRepository: SettingsRepository,
+)
+
 class PlayerViewModel(
     private val navArgs: PlayerNavArgs,
-    private val repository: BookRepository,
-    private val progressRepository: ProgressRepository,
-    private val playbackController: PlaybackController,
-    private val playbackPreparer: PlaybackPreparer,
-    private val sleepTimerController: SleepTimerController,
+    private val dependencies: PlayerViewModelDependencies,
 ) : ViewModel() {
 
     private val bookId: Long get() = navArgs.bookId
     private val autoPlay: Boolean get() = navArgs.autoPlay
+    private val repository get() = dependencies.repository
+    private val progressRepository get() = dependencies.progressRepository
+    private val playbackController get() = dependencies.playbackController
+    private val playbackPreparer get() = dependencies.playbackPreparer
+    private val sleepTimerController get() = dependencies.sleepTimerController
+    private val settingsRepository get() = dependencies.settingsRepository
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<PlayerEvent> = _events.asSharedFlow()
@@ -62,6 +76,7 @@ class PlayerViewModel(
         collectPlayerState()
         observePlaybackErrors()
         collectSleepTimerState()
+        collectRememberedSleepTimerMinutes()
     }
 
     private fun loadBook() {
@@ -168,8 +183,11 @@ class PlayerViewModel(
         playbackController.setSpeed(speed.coerceIn(PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX))
     }
 
-    fun startSleepTimerFixed(durationMs: Long) {
-        sleepTimerController.startFixedDuration(durationMs)
+    fun startSleepTimerFixed(minutes: Int) {
+        viewModelScope.launch {
+            settingsRepository.setLastFixedSleepTimerMinutes(minutes)
+            sleepTimerController.startFixedDuration(minutes * MILLIS_PER_MINUTE)
+        }
     }
 
     fun startSleepTimerEndOfChapter() {
@@ -184,6 +202,14 @@ class PlayerViewModel(
         viewModelScope.launch {
             sleepTimerController.state.collect { state ->
                 _uiState.value = _uiState.value.copy(sleepTimerState = state)
+            }
+        }
+    }
+
+    private fun collectRememberedSleepTimerMinutes() {
+        viewModelScope.launch {
+            settingsRepository.lastFixedSleepTimerMinutes.collect { minutes ->
+                _uiState.value = _uiState.value.copy(rememberedSleepTimerMinutes = minutes)
             }
         }
     }
@@ -268,5 +294,7 @@ class PlayerViewModel(
 private const val COMPLETION_THRESHOLD_MS = 1000L
 private const val PLAYBACK_SPEED_MIN = 0.5f
 private const val PLAYBACK_SPEED_MAX = 2.0f
+private const val DEFAULT_SLEEP_TIMER_MINUTES = 30
+private const val MILLIS_PER_MINUTE = 60_000L
 
 private const val TAG = "PlayerViewModel"

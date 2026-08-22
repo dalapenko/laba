@@ -124,7 +124,7 @@ private data class TransportActions(
 
 /** Bundles the sleep-timer viewmodel callbacks separately so [PlayerActions] stays under the param-count limit. */
 private data class SleepTimerActions(
-    val onStartFixedDuration: (Long) -> Unit,
+    val onStartFixedDuration: (Int) -> Unit,
     val onStartEndOfChapter: () -> Unit,
     val onCancel: () -> Unit,
 )
@@ -275,8 +275,9 @@ private fun PlayerBottomSheets(
             isActive = uiState.sleepTimerState.isActive,
             remainingMs = uiState.sleepTimerState.remainingMs,
             remainingChapterMs = (playerState.durationMs - playerState.currentPositionMs).coerceAtLeast(0L),
-            onStartFixedDuration = { durationMs ->
-                sleepTimerActions.onStartFixedDuration(durationMs)
+            initialFixedMinutes = uiState.rememberedSleepTimerMinutes,
+            onStartFixedDuration = { minutes ->
+                sleepTimerActions.onStartFixedDuration(minutes)
                 showSleepTimer.value = false
             },
             onStartEndOfChapter = {
