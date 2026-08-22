@@ -24,7 +24,7 @@ rootProject.file("local.properties").also { f ->
 // versionCode = major * 10_000 + minor * 100 + patch, so it strictly increases
 // with every release as required by https://developer.android.com/studio/publish/versioning
 val versionMajor = 1
-val versionMinor = 3
+val versionMinor = 4
 val versionPatch = 0
 
 android {

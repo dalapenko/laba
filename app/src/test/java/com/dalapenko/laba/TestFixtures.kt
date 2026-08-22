@@ -12,6 +12,7 @@ fun testBook(
     rootFolderUri: String = "content://test/tree/book1",
     coverUri: String? = null,
     isAvailable: Boolean = true,
+    addedAt: Long = System.currentTimeMillis(),
 ) = BookEntity(
     id = id,
     title = title,
@@ -20,6 +21,7 @@ fun testBook(
     rootFolderUri = rootFolderUri,
     totalDurationMs = totalDurationMs,
     isAvailable = isAvailable,
+    addedAt = addedAt,
 )
 
 fun testTrack(

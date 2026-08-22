@@ -27,8 +27,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
@@ -109,6 +111,7 @@ fun LibraryScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val scanResult by viewModel.scanResult.collectAsStateWithLifecycle()
     val playbackStatus by viewModel.playbackStatus.collectAsStateWithLifecycle()
+    val sortOption by viewModel.sortOption.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val msgFileNotAvailable = stringResource(R.string.snackbar_file_not_available)
@@ -145,9 +148,11 @@ fun LibraryScreen(
         isScanning = isScanning,
         isRefreshing = isRefreshing,
         playbackStatus = playbackStatus,
+        sortOption = sortOption,
         snackbarHostState = snackbarHostState,
         onBookClick = onBookClick,
         onSettingsClick = onSettingsClick,
+        onSortOptionSelected = viewModel::setLibrarySortOption,
         onTogglePlayPause = viewModel::togglePlayPause,
         onPrepareAndPlay = viewModel::prepareAndPlay,
         onUnavailableBookClicked = viewModel::onUnavailableBookClicked,
@@ -191,9 +196,11 @@ private fun LibraryScreenContent(
     isScanning: Boolean,
     isRefreshing: Boolean,
     playbackStatus: PlaybackStatus,
+    sortOption: LibrarySortOption,
     snackbarHostState: SnackbarHostState,
     onBookClick: (Long) -> Unit,
     onSettingsClick: () -> Unit,
+    onSortOptionSelected: (LibrarySortOption) -> Unit,
     onTogglePlayPause: () -> Unit,
     onPrepareAndPlay: (Long) -> Unit,
     onUnavailableBookClicked: () -> Unit,
@@ -220,6 +227,8 @@ private fun LibraryScreenContent(
             LibraryTopBar(
                 scrollBehavior = scrollBehavior,
                 onSettingsClick = onSettingsClick,
+                selectedSortOption = sortOption,
+                onSortOptionSelected = onSortOptionSelected,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -254,11 +263,17 @@ private fun LibraryScreenContent(
 private fun LibraryTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     onSettingsClick: () -> Unit,
+    selectedSortOption: LibrarySortOption,
+    onSortOptionSelected: (LibrarySortOption) -> Unit,
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.app_name)) },
         scrollBehavior = scrollBehavior,
         actions = {
+            LibrarySortMenu(
+                selectedSortOption = selectedSortOption,
+                onSortOptionSelected = onSortOptionSelected,
+            )
             IconButton(
                 onClick = onSettingsClick,
                 modifier = Modifier.testTag("settings_button"),
@@ -271,6 +286,90 @@ private fun LibraryTopBar(
         },
     )
 }
+
+@Composable
+private fun LibrarySortMenu(
+    selectedSortOption: LibrarySortOption,
+    onSortOptionSelected: (LibrarySortOption) -> Unit,
+) {
+    var showSortMenu by remember { mutableStateOf(false) }
+    Box {
+        IconButton(
+            onClick = { showSortMenu = true },
+            modifier = Modifier.testTag("sort_button"),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Sort,
+                contentDescription = stringResource(R.string.cd_sort_library),
+            )
+        }
+        DropdownMenu(
+            expanded = showSortMenu,
+            onDismissRequest = { showSortMenu = false },
+            modifier = Modifier.testTag("sort_menu"),
+        ) {
+            Text(
+                text = stringResource(R.string.sort_menu_title),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("sort_menu_title"),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            LibrarySortOption.entries.forEach { option ->
+                LibrarySortMenuItem(
+                    option = option,
+                    isSelected = option == selectedSortOption,
+                    onClick = {
+                        showSortMenu = false
+                        onSortOptionSelected(option)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibrarySortMenuItem(
+    option: LibrarySortOption,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val selectedStateDescription = if (isSelected) {
+        stringResource(R.string.sort_selected)
+    } else {
+        null
+    }
+    DropdownMenuItem(
+        text = { Text(sortOptionLabel(option)) },
+        onClick = onClick,
+        trailingIcon = if (isSelected) {
+            {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = stringResource(R.string.cd_sort_selected),
+                )
+            }
+        } else {
+            null
+        },
+        modifier = Modifier
+            .testTag("sort_option_${option.name}")
+            .semantics {
+                selectedStateDescription?.let { stateDescription = it }
+            },
+    )
+}
+
+@Composable
+private fun sortOptionLabel(option: LibrarySortOption): String = stringResource(
+    when (option) {
+        LibrarySortOption.ADDED_AT_ASC -> R.string.sort_added_at_ascending
+        LibrarySortOption.ADDED_AT_DESC -> R.string.sort_added_at_descending
+        LibrarySortOption.TITLE_ASC -> R.string.sort_title_ascending
+        LibrarySortOption.TITLE_DESC -> R.string.sort_title_descending
+    },
+)
 
 @Composable
 private fun LibraryFabMenu(

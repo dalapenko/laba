@@ -58,7 +58,7 @@ class BookRepositoryTest {
 
     @Test
     fun givenNewBook_whenAddBookIfNew_thenInsertsAndReturnsPositiveId() = runTest {
-        val book = testBook()
+        val book = testBook(addedAt = 123_456L)
         coEvery { bookDao.existsByRootUri(book.rootFolderUri) } returns false
         coEvery { bookDao.insert(book) } returns 5L
         coJustRun { trackDao.insertAll(any()) }
@@ -66,6 +66,7 @@ class BookRepositoryTest {
         val result = repository.addBookIfNew(book, emptyList())
 
         assertEquals(5L, result)
+        coVerify { bookDao.insert(book.copy(addedAt = 123_456L)) }
     }
 
     @Test

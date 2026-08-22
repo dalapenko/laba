@@ -15,8 +15,16 @@
     </plurals>
 
     <string name="cd_add_audiobook">Добавить аудиокнигу</string>
+    <string name="cd_sort_library">Сортировка библиотеки</string>
+    <string name="cd_sort_selected">Выбрано</string>
     <string name="menu_add_folder">Добавить папку</string>
     <string name="menu_add_file">Добавить файл</string>
+    <string name="sort_menu_title">Сортировать книги</string>
+    <string name="sort_selected">Выбрано</string>
+    <string name="sort_added_at_ascending">По дате добавления, сначала старые</string>
+    <string name="sort_added_at_descending">По дате добавления, сначала новые</string>
+    <string name="sort_title_ascending">По названию, от А до Я</string>
+    <string name="sort_title_descending">По названию, от Я до А</string>
 
     <string name="empty_library_title">Ваша библиотека пуста</string>
     <string name="empty_library_subtitle">Нажмите +, чтобы добавить папку или файл с аудиокнигой</string>

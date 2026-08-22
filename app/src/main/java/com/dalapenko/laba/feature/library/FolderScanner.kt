@@ -294,6 +294,7 @@ class FolderScanner(private val context: Context) {
         rootFolderUri = scanned.rootUri,
         totalDurationMs = scanned.tracks.sumOf { it.durationMs },
         coverUri = scanned.coverUri,
+        addedAt = System.currentTimeMillis(),
     )
 
     fun toTrackEntities(scanned: ScannedBook, bookId: Long = 0): List<TrackEntity> =

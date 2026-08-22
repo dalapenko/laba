@@ -16,4 +16,5 @@ data class BookEntity(
     val rootFolderUri: String,
     val totalDurationMs: Long,
     val isAvailable: Boolean = true,
+    val addedAt: Long = System.currentTimeMillis(),
 )

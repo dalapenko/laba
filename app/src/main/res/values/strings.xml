@@ -16,8 +16,16 @@
 
     <!-- Library Screen — FAB & menu -->
     <string name="cd_add_audiobook">Add audiobook</string>
+    <string name="cd_sort_library">Sort library</string>
+    <string name="cd_sort_selected">Selected</string>
     <string name="menu_add_folder">Add Folder</string>
     <string name="menu_add_file">Add File</string>
+    <string name="sort_menu_title">Sort books by</string>
+    <string name="sort_selected">Selected</string>
+    <string name="sort_added_at_ascending">Date added, oldest first</string>
+    <string name="sort_added_at_descending">Date added, newest first</string>
+    <string name="sort_title_ascending">Title, A to Z</string>
+    <string name="sort_title_descending">Title, Z to A</string>
 
     <!-- Library Screen — empty state -->
     <string name="empty_library_title">Your library is empty</string>

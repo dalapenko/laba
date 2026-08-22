@@ -40,6 +40,7 @@ class FolderScannerEntityConversionTest {
         assertEquals("content://test/tree/book1", entity.rootFolderUri)
         assertEquals("file:///data/covers/book1.jpg", entity.coverUri)
         assertEquals(150_000L, entity.totalDurationMs)
+        assertTrue(entity.addedAt > 0L)
     }
 
     @Test

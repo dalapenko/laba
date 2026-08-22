@@ -1,6 +1,7 @@
 package com.dalapenko.laba.screens
 
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import com.dalapenko.laba.feature.library.LibrarySortOption
 import io.github.kakaocup.compose.node.element.ComposeScreen
 import io.github.kakaocup.compose.node.element.KNode
 
@@ -21,6 +22,18 @@ class LibraryScreen(semanticsProvider: SemanticsNodeInteractionsProvider) :
 
     val continueHeader: KNode = child {
         hasTestTag("continue_header")
+    }
+
+    val sortButton: KNode = child {
+        hasTestTag("sort_button")
+    }
+
+    val sortMenu: KNode = child {
+        hasTestTag("sort_menu")
+    }
+
+    fun sortOption(option: LibrarySortOption): KNode = child {
+        hasTestTag("sort_option_${option.name}")
     }
 
     /**

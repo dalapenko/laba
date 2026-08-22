@@ -8,6 +8,7 @@ import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaybackPreparer
 import com.dalapenko.laba.core.media.PlayerState
+import com.dalapenko.laba.feature.settings.SettingsRepository
 import com.dalapenko.laba.testBook
 import com.dalapenko.laba.testProgress
 import com.dalapenko.laba.testTrack
@@ -39,17 +40,21 @@ class LibraryViewModelTest {
     private val mockProgressRepository = mockk<ProgressRepository>()
     private val mockScanner = mockk<FolderScanner>()
     private val mockController = mockk<PlaybackController>()
+    private val mockSettingsRepository = mockk<SettingsRepository>()
 
     private val currentBookIdFlow = MutableStateFlow<Long?>(null)
     private val playerStateFlow = MutableStateFlow(PlayerState())
     private val booksWithProgressFlow = MutableStateFlow<List<BookWithProgress>>(emptyList())
     private val lastPlayedBookIdFlow = MutableStateFlow<Long?>(null)
+    private val librarySortOptionFlow = MutableStateFlow(LibrarySortOption.ADDED_AT_DESC)
 
     @Before
     fun setup() {
         // Configure controller property stubs — must be before ViewModel init
         every { mockController.currentBookId } returns currentBookIdFlow
         every { mockController.playerState } returns playerStateFlow
+        every { mockSettingsRepository.librarySortOption } returns librarySortOptionFlow
+        coJustRun { mockSettingsRepository.setLibrarySortOption(any()) }
 
         // Repository stubs for init{} block
         every { mockRepository.observeAllBooksWithProgress() } returns booksWithProgressFlow
@@ -78,7 +83,14 @@ class LibraryViewModelTest {
 
     private fun createViewModel(): LibraryViewModel {
         val preparer = PlaybackPreparer(mockProgressRepository, mockController)
-        return LibraryViewModel(mockRepository, mockProgressRepository, mockScanner, mockController, preparer)
+        return LibraryViewModel(
+            mockRepository,
+            mockProgressRepository,
+            mockScanner,
+            mockController,
+            preparer,
+            mockSettingsRepository,
+        )
     }
 
     // ── prepareAndPlay — availability guards ──────────────────────────────────
@@ -384,6 +396,66 @@ class LibraryViewModelTest {
             }
             cancelAndConsumeRemainingEvents()
         }
+    }
+
+    @Test
+    fun givenNoSavedSortOption_whenObservingLibraryBooks_thenNewestBookComesFirst() = runTest {
+        booksWithProgressFlow.value = listOf(
+            BookWithProgress(testBook(id = 1L, addedAt = 100L), null, 0f),
+            BookWithProgress(testBook(id = 2L, addedAt = 200L), null, 0f),
+        )
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(LibrarySortOption.ADDED_AT_DESC, vm.sortOption.value)
+        assertEquals(listOf(2L, 1L), vm.libraryBooks.value.map { it.book.id })
+    }
+
+    @Test
+    fun givenSavedSortOption_whenObservingLibraryBooks_thenRestoresTheSelectedOrdering() = runTest {
+        librarySortOptionFlow.value = LibrarySortOption.TITLE_ASC
+        booksWithProgressFlow.value = listOf(
+            BookWithProgress(testBook(id = 1L, title = "Bravo"), null, 0f),
+            BookWithProgress(testBook(id = 2L, title = "Alpha"), null, 0f),
+        )
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(2L, 1L), vm.libraryBooks.value.map { it.book.id })
+    }
+
+    @Test
+    fun givenEachSortOption_whenSelected_thenLibraryBooksUseThatDirection() = runTest {
+        booksWithProgressFlow.value = listOf(
+            BookWithProgress(testBook(id = 1L, title = "Bravo", addedAt = 100L), null, 0f),
+            BookWithProgress(testBook(id = 2L, title = "Alpha", addedAt = 200L), null, 0f),
+        )
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        val expectedIds = mapOf(
+            LibrarySortOption.ADDED_AT_ASC to listOf(1L, 2L),
+            LibrarySortOption.ADDED_AT_DESC to listOf(2L, 1L),
+            LibrarySortOption.TITLE_ASC to listOf(2L, 1L),
+            LibrarySortOption.TITLE_DESC to listOf(1L, 2L),
+        )
+        expectedIds.forEach { (option, ids) ->
+            librarySortOptionFlow.value = option
+            advanceUntilIdle()
+            assertEquals(ids, vm.libraryBooks.value.map { it.book.id })
+        }
+    }
+
+    @Test
+    fun whenSelectingSortOption_thenSelectionIsPersisted() = runTest {
+        val vm = createViewModel()
+
+        vm.setLibrarySortOption(LibrarySortOption.TITLE_DESC)
+        advanceUntilIdle()
+
+        coVerify { mockSettingsRepository.setLibrarySortOption(LibrarySortOption.TITLE_DESC) }
     }
 
     @Test

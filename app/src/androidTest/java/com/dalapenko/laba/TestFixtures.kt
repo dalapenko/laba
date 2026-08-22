@@ -16,7 +16,8 @@ object TestFixtures {
         rootFolderUri: String = "content://test/audiobooks/$id",
         coverUri: String? = null,
         totalDurationMs: Long = 620_000L,
-        isAvailable: Boolean = true
+        isAvailable: Boolean = true,
+        addedAt: Long = System.currentTimeMillis(),
     ) = BookEntity(
         id = id,
         title = title,
@@ -24,7 +25,8 @@ object TestFixtures {
         rootFolderUri = rootFolderUri,
         coverUri = coverUri,
         totalDurationMs = totalDurationMs,
-        isAvailable = isAvailable
+        isAvailable = isAvailable,
+        addedAt = addedAt,
     )
 
     fun testTrack(

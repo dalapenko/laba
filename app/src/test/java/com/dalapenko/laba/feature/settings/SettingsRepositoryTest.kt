@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.cash.turbine.test
+import com.dalapenko.laba.feature.library.LibrarySortOption
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -108,6 +109,35 @@ class SettingsRepositoryTest {
 
         repository.lastFixedSleepTimerMinutes.test {
             assertEquals(30, awaitItem())
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenNoStoredValue_whenObservingLibrarySortOption_thenReturnsNewestAddedFirst() = runTest {
+        repository.librarySortOption.test {
+            assertEquals(LibrarySortOption.ADDED_AT_DESC, awaitItem())
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenEachLibrarySortOption_whenSaved_thenRoundTripsCorrectly() = runTest {
+        LibrarySortOption.entries.forEach { option ->
+            repository.setLibrarySortOption(option)
+            repository.librarySortOption.test {
+                assertEquals(option, awaitItem())
+                cancelAndConsumeRemainingEvents()
+            }
+        }
+    }
+
+    @Test
+    fun givenUnknownStoredLibrarySortOption_whenObserving_thenReturnsNewestAddedFirst() = runTest {
+        fakeDataStore.setStringValue("library_sort_option", "UNKNOWN")
+
+        repository.librarySortOption.test {
+            assertEquals(LibrarySortOption.ADDED_AT_DESC, awaitItem())
             cancelAndConsumeRemainingEvents()
         }
     }

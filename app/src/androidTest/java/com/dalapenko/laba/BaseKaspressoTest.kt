@@ -9,6 +9,7 @@ import com.dalapenko.laba.core.database.dao.ProgressDao
 import com.dalapenko.laba.core.database.dao.TrackDao
 import com.dalapenko.laba.core.database.entity.ProgressEntity
 import com.dalapenko.laba.core.media.PlaybackController
+import com.dalapenko.laba.feature.settings.SettingsRepository
 import com.kaspersky.components.composesupport.config.withComposeSupport
 import com.kaspersky.kaspresso.kaspresso.Kaspresso
 import com.kaspersky.kaspresso.testcases.api.testcase.TestCase
@@ -70,6 +71,7 @@ abstract class BaseKaspressoTest : TestCase(
 
     // Inject PlaybackController for verification
     protected val playbackController: PlaybackController by inject()
+    protected val settingsRepository: SettingsRepository by inject()
 
     private var activityScenario: ActivityScenario<MainActivity>? = null
 
@@ -108,6 +110,15 @@ abstract class BaseKaspressoTest : TestCase(
      * after all test data has been inserted into the database.
      */
     protected fun launchActivity() {
+        activityScenario = ActivityScenario.launch(MainActivity::class.java)
+    }
+
+    protected fun recreateActivity() {
+        activityScenario?.recreate()
+    }
+
+    protected fun restartActivity() {
+        activityScenario?.close()
         activityScenario = ActivityScenario.launch(MainActivity::class.java)
     }
 

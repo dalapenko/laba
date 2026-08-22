@@ -12,6 +12,7 @@ import com.dalapenko.laba.core.data.ProgressRepository
 import com.dalapenko.laba.core.database.entity.TrackEntity
 import com.dalapenko.laba.core.media.PlaybackController
 import com.dalapenko.laba.core.media.PlaybackPreparer
+import com.dalapenko.laba.feature.settings.SettingsRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -49,6 +50,7 @@ class LibraryViewModel(
     private val scanner: FolderScanner,
     private val playbackController: PlaybackController,
     private val playbackPreparer: PlaybackPreparer,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<LibraryEvent>(extraBufferCapacity = 1)
@@ -149,12 +151,17 @@ class LibraryViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val sortOption: StateFlow<LibrarySortOption> = settingsRepository.librarySortOption
+        .stateIn(viewModelScope, SharingStarted.Eagerly, LibrarySortOption.ADDED_AT_DESC)
+
     val libraryBooks: StateFlow<List<BookWithProgress>> = combine(
         books,
         continueBook,
-    ) { bookItems, continueItem ->
-        val continueBookId = continueItem?.book?.book?.id ?: return@combine bookItems
-        bookItems.filterNot { it.book.id == continueBookId }
+        sortOption,
+    ) { bookItems, continueItem, selectedSortOption ->
+        val sortedBooks = sortLibraryBooks(bookItems, selectedSortOption)
+        val continueBookId = continueItem?.book?.book?.id
+        if (continueBookId == null) sortedBooks else sortedBooks.filterNot { it.book.id == continueBookId }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _isScanning = MutableStateFlow(false)
@@ -197,6 +204,10 @@ class LibraryViewModel(
         } else {
             playbackController.play()
         }
+    }
+
+    fun setLibrarySortOption(option: LibrarySortOption) {
+        viewModelScope.launch { settingsRepository.setLibrarySortOption(option) }
     }
 
     fun prepareAndPlay(bookId: Long) {
