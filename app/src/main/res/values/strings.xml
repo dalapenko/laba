@@ -7,6 +7,7 @@
     <string name="snackbar_removed_from_library_no_delete">Removed from library. Could not delete files — re-add the book to grant permission.</string>
     <string name="snackbar_no_audio_files">No audio files found</string>
     <string name="snackbar_permission_denied">Permission denied. Please re-pick the folder.</string>
+    <string name="snackbar_file_picker_unavailable">System file picker is not available on this device</string>
     <string name="snackbar_added_single">Added: %1$s</string>
     <string name="snackbar_already_in_library">Already in library</string>
     <plurals name="snackbar_added_books">

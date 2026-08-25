@@ -1,5 +1,7 @@
 package com.dalapenko.laba.feature.library
 
+import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -64,6 +66,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,6 +87,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.dalapenko.laba.R
 import com.dalapenko.laba.core.data.BookWithProgress
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 private data class LibraryBookCardUiState(
@@ -92,6 +96,11 @@ private data class LibraryBookCardUiState(
     val isPlaying: Boolean,
     val isHighlighted: Boolean,
     val onCoverClick: (() -> Unit)?,
+)
+
+private data class LibraryPickerActions(
+    val onAddFolder: () -> Unit,
+    val onAddFile: () -> Unit,
 )
 
 private const val ACTIVE_COVER_OVERLAY_ALPHA = 0.45f
@@ -209,15 +218,14 @@ private fun LibraryScreenContent(
     onFilePicked: (Uri, android.content.ContentResolver) -> Unit,
     onDeleteRequested: (BookWithProgress) -> Unit,
 ) {
-    val context = LocalContext.current
     var showFabMenu by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let { onFolderPicked(it, context.contentResolver) }
-    }
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { onFilePicked(it, context.contentResolver) }
-    }
+    val pickerActions = rememberLibraryPickerActions(
+        context = LocalContext.current,
+        snackbarHostState = snackbarHostState,
+        onFolderPicked = onFolderPicked,
+        onFilePicked = onFilePicked,
+    )
 
     Scaffold(
         modifier = Modifier
@@ -236,8 +244,8 @@ private fun LibraryScreenContent(
             LibraryFabMenu(
                 expanded = showFabMenu,
                 onExpandChange = { showFabMenu = it },
-                onAddFolder = { folderPicker.launch(null) },
-                onAddFile = { filePicker.launch(arrayOf("audio/*")) },
+                onAddFolder = pickerActions.onAddFolder,
+                onAddFile = pickerActions.onAddFile,
             )
         },
     ) { padding ->
@@ -256,6 +264,43 @@ private fun LibraryScreenContent(
             modifier = Modifier.padding(padding),
         )
     }
+}
+
+@Composable
+private fun rememberLibraryPickerActions(
+    context: Context,
+    snackbarHostState: SnackbarHostState,
+    onFolderPicked: (Uri, ContentResolver) -> Unit,
+    onFilePicked: (Uri, ContentResolver) -> Unit,
+): LibraryPickerActions {
+    val coroutineScope = rememberCoroutineScope()
+    val msgFilePickerUnavailable = stringResource(R.string.snackbar_file_picker_unavailable)
+    val onPickerUnavailable: () -> Unit = {
+        coroutineScope.launch {
+            snackbarHostState.showSnackbar(msgFilePickerUnavailable)
+        }
+    }
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let { onFolderPicked(it, context.contentResolver) }
+    }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { onFilePicked(it, context.contentResolver) }
+    }
+
+    return LibraryPickerActions(
+        onAddFolder = {
+            launchSafPickerSafely(
+                launch = { folderPicker.launch(null) },
+                onUnavailable = onPickerUnavailable,
+            )
+        },
+        onAddFile = {
+            launchSafPickerSafely(
+                launch = { filePicker.launch(arrayOf("audio/*")) },
+                onUnavailable = onPickerUnavailable,
+            )
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

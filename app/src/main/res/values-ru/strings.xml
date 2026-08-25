@@ -5,6 +5,7 @@
     <string name="snackbar_removed_from_library_no_delete">Удалена из библиотеки. Не удалось удалить файлы — добавьте книгу снова для получения разрешения.</string>
     <string name="snackbar_no_audio_files">Аудиофайлы не найдены</string>
     <string name="snackbar_permission_denied">Доступ запрещён. Выберите папку повторно.</string>
+    <string name="snackbar_file_picker_unavailable">Системный выбор файлов недоступен на этом устройстве</string>
     <string name="snackbar_added_single">Добавлена: %1$s</string>
     <string name="snackbar_already_in_library">Уже в библиотеке</string>
     <plurals name="snackbar_added_books">
